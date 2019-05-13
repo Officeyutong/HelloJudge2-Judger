@@ -40,7 +40,6 @@ class DockerRunner:
         import requests.exceptions
         exit_code = 0
 
-       
         self.container.start()
         try:
             begin = time.time()
@@ -49,12 +48,10 @@ class DockerRunner:
             end = time.time()
         except requests.exceptions.ReadTimeout as ex:
             end = time.time()
-            print("Timed out")
-            
         self.container.reload()
         output = self.container.logs().decode()
         memory_cost = self.container.stats(
-            stream=False)["memory_stats"].get("max_usage", 0)
+            stream=False)["memory_stats"].get("max_usage", -1)
         if self.container.status == "running":
             self.container.kill()
 
