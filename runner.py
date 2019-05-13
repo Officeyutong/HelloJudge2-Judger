@@ -39,9 +39,12 @@ class DockerRunner:
         import time
         import requests.exceptions
         begin = time.time()
+        exit_code=0
         try:
-            exit_code = self.container.wait(timeout=self.time_limit)
+            exit_code = self.container.wait(
+                timeout=self.time_limit)["StatusCode"]
         except requests.exceptions.ReadTimeout as ex:
+            print("Timed out")
             pass
         end = time.time()
         self.container.reload()
