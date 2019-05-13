@@ -31,17 +31,25 @@ class DockerRunner:
     def run(self)->RunnerResult:
         """
         运行指令
-        raises:
-        TimeoutError: 如果超时
         """
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
-            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
+            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False)
         import time
+        import threading
         import requests.exceptions
         exit_code = 0
         self.container.start()
-        print(self.container.stats(
-                stream=False))
+        count, total = 0, 0
+
+        def memory_handle():
+            for curr in self.container.stats(decode=True):
+                self.container.reload()
+                if self.container.status == "running":
+                    count, total = count+1, total+curr["memory_usage"]["usage"]
+                else:
+                    break
+                time.sleep(0.001)
+        threading.Thread(target=memory_handle).start()
         try:
             begin = time.time()
             exit_code = self.container.wait(
@@ -50,10 +58,6 @@ class DockerRunner:
         except requests.exceptions.ReadTimeout as ex:
             end = time.time()
         self.container.reload()
-
-        memory_cost = self.container.stats(
-                stream=False)["memory_stats"]["max_usage"]
-
         output = self.container.logs().decode()
         if self.container.status == "running":
             self.container.kill()
