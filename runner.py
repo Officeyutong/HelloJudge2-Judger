@@ -41,12 +41,15 @@ class DockerRunner:
         exit_code = 0
 
         self.container.start()
-        memory_cost = self.container.stats(
-            stream=False)["memory_stats"]["max_usage"]
         try:
             begin = time.time()
             exit_code = self.container.wait(
                 timeout=self.time_limit)["StatusCode"]
+                
+            memory_cost = self.container.stats(
+                stream=False)["memory_stats"]["max_usage"]
+            print(self.container.stats(
+                stream=False))
             end = time.time()
         except requests.exceptions.ReadTimeout as ex:
             end = time.time()
