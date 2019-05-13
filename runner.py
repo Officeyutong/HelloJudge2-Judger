@@ -52,6 +52,7 @@ class DockerRunner:
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
         container.start()
         ret = None
+
         def execute():
             nonlocal ret
             ret = container.exec_run(self.command, workdir="/temp")
@@ -64,8 +65,10 @@ class DockerRunner:
             container.reload()
             if container.status != "exited":
                 container.kill()
+            memory_cost = container.stats(stream=False)[
+                "memory_stats"]["max_usage"]
             container.remove()
-        return RunnerResult(ret.output.decode(), ret.exit_code, time_cost, container.stats(stream=False)["memory_stats"]["max_usage"])
+        return RunnerResult(ret.output.decode(), ret.exit_code, time_cost, memory_cost)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
