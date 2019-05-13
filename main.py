@@ -3,8 +3,8 @@ try:
 except Exception:
     import config_default as config
 import celery
+import os
+import task
 
 app = celery.Celery("HelloJudge2", broker=config.REDIS_URI)
-import task
-import os
-basedir=os.path.dirname(__file__)
+basedir = os.path.dirname(__file__)

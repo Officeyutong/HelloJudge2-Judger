@@ -6,12 +6,13 @@ class RunnerResult:
     output: str
     exit_code: int
     time_cost: float
+    memory_cost: int
 
-    def __init__(self, output, exit_code, time_cost):
-        self.exit_code, self.output, self.time_cost = exit_code, output, time_cost
+    def __init__(self, output, exit_code, time_cost, memory_cost):
+        self.exit_code, self.output, self.time_cost, self.memory_cost = exit_code, output, time_cost, memory_cost
 
     def __str__(self):
-        return f"<RunnerResult output='{self.output}',exit_code={self.exit_code},time_cost={self.time_cost}>"
+        return f"<RunnerResult output='{self.output}',exit_code={self.exit_code},time_cost={self.time_cost},memory_cost={memory_cost}>"
 
     def __repr__(self):
         return str(self)
@@ -28,11 +29,9 @@ class DockerRunner:
     memory_limit: 内存限制,格式形如"500mb"
     time_limit: 时间限制,int，单位ms
     client: 所使用的docker客户端
-
-
     """
 
-    def __init__(self, image_name: str, mount_dir: str, command: list, memory_limit, time_limit, task_name, client=docker.from_env()):
+    def __init__(self, image_name: str, mount_dir: str, command, memory_limit, time_limit, task_name, client=docker.from_env()):
         self.image_name = image_name
         self.mount_dir = mount_dir
         self.command = command
@@ -41,7 +40,7 @@ class DockerRunner:
         self.task_name = task_name
         self.memory_limit = memory_limit
 
-    def run(self)->str:
+    def run(self)->RunnerResult:
         """
         运行指令
         return:
@@ -66,7 +65,7 @@ class DockerRunner:
             if container.status != "exited":
                 container.kill()
             container.remove()
-        return RunnerResult(ret.output.decode(), ret.exit_code, time_cost)
+        return RunnerResult(ret.output.decode(), ret.exit_code, time_cost, container.stats(stream=False)["memory_stats"]["max_usage"])
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
