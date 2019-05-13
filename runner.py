@@ -1,21 +1,9 @@
 import docker
 from utils import *
+from collections import namedtuple
 
-
-class RunnerResult:
-    output: str
-    exit_code: int
-    time_cost: float
-    memory_cost: int
-
-    def __init__(self, output, exit_code, time_cost, memory_cost):
-        self.exit_code, self.output, self.time_cost, self.memory_cost = exit_code, output, time_cost, memory_cost
-
-    def __str__(self):
-        return f"<RunnerResult output='{self.output}',exit_code={self.exit_code},time_cost={self.time_cost},memory_cost={self.memory_cost}>"
-
-    def __repr__(self):
-        return str(self)
+RunnerResult = namedtuple(
+    "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
 
 
 class DockerRunner:
@@ -61,8 +49,9 @@ class DockerRunner:
             stream=False)["memory_stats"].get("max_usage", 0)
         if self.container.status == "running":
             self.container.kill()
+        output = self.container.logs().decode()
         self.container.remove()
-        return RunnerResult(self.container.logs(), exit_code, end-begin, memory_cost)
+        return RunnerResult(output, exit_code, end-begin, memory_cost)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
