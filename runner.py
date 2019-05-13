@@ -48,8 +48,9 @@ class DockerRunner:
         raises:
         TimeoutError: 如果超时
         """
-        container = self.client.containers.create(self.image_name, tty=True, detach=False, volumes={
+        self.container = self.client.containers.create(self.image_name, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
+        container = self.container
         container.start()
         ret = None
 
@@ -63,7 +64,7 @@ class DockerRunner:
             raise err
         finally:
             container.reload()
-            print(container.stats(stream=False))
+            # print(container.stats(stream=False))
             memory_cost = container.stats(stream=False)[
                 "memory_stats"]["max_usage"]
             if container.status != "exited":
