@@ -40,15 +40,17 @@ class DockerRunner:
         import requests.exceptions
         exit_code = 0
 
-        begin = time.time()
+       
         self.container.start()
         try:
+            begin = time.time()
             exit_code = self.container.wait(
                 timeout=self.time_limit)["StatusCode"]
-        except requests.exceptions.ReadTimeout as ex:
-            print("Timed out")
-        finally:
             end = time.time()
+        except requests.exceptions.ReadTimeout as ex:
+            end = time.time()
+            print("Timed out")
+            
         self.container.reload()
         output = self.container.logs().decode()
         memory_cost = self.container.stats(
