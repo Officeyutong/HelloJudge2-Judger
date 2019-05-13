@@ -43,8 +43,6 @@ class DockerRunner:
     def run(self)->RunnerResult:
         """
         运行指令
-        return:
-        标准输出和标准错误
         raises:
         TimeoutError: 如果超时
         """
@@ -55,6 +53,7 @@ class DockerRunner:
 
         def execute():
             nonlocal ret
+            assert self.container.status == "running"
             ret = self.container.exec_run(self.command, workdir="/temp")
         try:
             time_cost = time_limit_exec(
