@@ -63,7 +63,7 @@ class DockerRunner:
             self.container.kill()
 
         self.container.remove()
-        return RunnerResult(output, exit_code, end-begin, memory_cost)
+        return RunnerResult(output, exit_code, end-begin, 0 if count == 0 else total//count)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
