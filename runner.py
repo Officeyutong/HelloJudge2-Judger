@@ -46,28 +46,23 @@ class DockerRunner:
         raises:
         TimeoutError: 如果超时
         """
-        self.container = self.client.containers.create(self.image_name, tty=True, detach=False, volumes={
+        self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
-        self.container.start()
-        ret = None
-
-        def execute():
-            nonlocal ret
-            assert self.container.status == "running"
-            ret = self.container.exec_run(self.command, workdir="/temp")
+        import time
+        import requests.exceptions
+        begin = time.time()
         try:
-            time_cost = time_limit_exec(
-                self.time_limit, self.task_name, execute)
-        except TimeoutError as err:
-            raise err
-        finally:
-            self.container.reload()
-            if self.container.status != "exited":
-                self.container.kill()
-            memory_cost = self.container.stats(stream=False)[
-                "memory_stats"].get("max_usage", 0)
-            self.container.remove()
-        return RunnerResult(ret.output.decode(), ret.exit_code, time_cost, memory_cost)
+            exit_code = self.container.wait(timeout=self.time_limit)
+        except requests.exceptions.ReadTimeout as ex:
+            pass
+        end = time.time()
+        self.container.reload()
+        memory_cost = self.container.stats(
+            stream=False)["memory_stats"].get("max_usage", 0)
+        if self.container.status != "exited":
+            self.container.kill()
+        self.container.remove()
+        return RunnerResult(self.container.logs(), exit_code, end-begin, memory_cost)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
