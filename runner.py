@@ -45,8 +45,8 @@ class DockerRunner:
             for curr in self.container.stats(decode=True):
                 self.container.reload()
                 if self.container.status == "running":
-                    nonlocal count,total
-                    count, total = count+1, total+curr["memory_usage"]["usage"]
+                    nonlocal count, total
+                    count, total = count+1, total+curr["memory_stats"]["usage"]
                 else:
                     break
                 time.sleep(0.001)
