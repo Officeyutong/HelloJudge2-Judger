@@ -50,26 +50,25 @@ class DockerRunner:
         """
         self.container = self.client.containers.create(self.image_name, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
-        container = self.container
-        container.start()
+        self.container.start()
         ret = None
 
         def execute():
             nonlocal ret
-            ret = container.exec_run(self.command, workdir="/temp")
+            ret = self.container.exec_run(self.command, workdir="/temp")
         try:
             time_cost = time_limit_exec(
                 self.time_limit, self.task_name, execute)
         except TimeoutError as err:
             raise err
         finally:
-            container.reload()
+            self.container.reload()
             # print(container.stats(stream=False))
-            memory_cost = container.stats(stream=False)[
+            memory_cost = self.container.stats(stream=False)[
                 "memory_stats"].get("max_usage", 0)
-            if container.status != "exited":
-                container.kill()
-            container.remove()
+            if self.container.status != "exited":
+                self.container.kill()
+            self.container.remove()
         return RunnerResult(ret.output.decode(), ret.exit_code, time_cost, memory_cost)
 
     def __str__(self):
