@@ -39,7 +39,7 @@ class DockerRunner:
         import time
         import requests.exceptions
         begin = time.time()
-        exit_code=0
+        exit_code = 0
         try:
             exit_code = self.container.wait(
                 timeout=self.time_limit)["StatusCode"]
@@ -48,11 +48,12 @@ class DockerRunner:
             pass
         end = time.time()
         self.container.reload()
+        output = self.container.logs().decode()
         memory_cost = self.container.stats(
             stream=False)["memory_stats"].get("max_usage", 0)
         if self.container.status == "running":
             self.container.kill()
-        output = self.container.logs().decode()
+        
         self.container.remove()
         return RunnerResult(output, exit_code, end-begin, memory_cost)
 
