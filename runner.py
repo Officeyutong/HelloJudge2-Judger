@@ -63,7 +63,7 @@ class DockerRunner:
             raise err
         finally:
             self.container.reload()
-            # print(container.stats(stream=False))
+            print( self.container.stats(stream=False))
             memory_cost = self.container.stats(stream=False)[
                 "memory_stats"].get("max_usage", 0)
             if self.container.status != "exited":
