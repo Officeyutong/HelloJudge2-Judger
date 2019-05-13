@@ -59,7 +59,7 @@ class DockerRunner:
         self.container.reload()
         memory_cost = self.container.stats(
             stream=False)["memory_stats"].get("max_usage", 0)
-        if self.container.status != "exited":
+        if self.container.status == "running":
             self.container.kill()
         self.container.remove()
         return RunnerResult(self.container.logs(), exit_code, end-begin, memory_cost)
