@@ -53,7 +53,6 @@ class DockerRunner:
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
         container.start()
         ret = None
-
         def execute():
             nonlocal ret
             ret = container.exec_run(self.command, workdir="/temp")
