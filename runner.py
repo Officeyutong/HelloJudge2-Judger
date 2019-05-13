@@ -12,7 +12,7 @@ class RunnerResult:
         self.exit_code, self.output, self.time_cost, self.memory_cost = exit_code, output, time_cost, memory_cost
 
     def __str__(self):
-        return f"<RunnerResult output='{self.output}',exit_code={self.exit_code},time_cost={self.time_cost},memory_cost={memory_cost}>"
+        return f"<RunnerResult output='{self.output}',exit_code={self.exit_code},time_cost={self.time_cost},memory_cost={self.memory_cost}>"
 
     def __repr__(self):
         return str(self)
@@ -68,7 +68,6 @@ class DockerRunner:
                 "memory_stats"]["max_usage"]
             if container.status != "exited":
                 container.kill()
-
             container.remove()
         return RunnerResult(ret.output.decode(), ret.exit_code, time_cost, memory_cost)
 
