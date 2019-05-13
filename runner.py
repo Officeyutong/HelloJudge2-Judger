@@ -38,8 +38,10 @@ class DockerRunner:
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit)
         import time
         import requests.exceptions
-        begin = time.time()
         exit_code = 0
+
+        begin = time.time()
+        self.container.start()
         try:
             exit_code = self.container.wait(
                 timeout=self.time_limit)["StatusCode"]
@@ -53,7 +55,7 @@ class DockerRunner:
             stream=False)["memory_stats"].get("max_usage", 0)
         if self.container.status == "running":
             self.container.kill()
-        
+
         self.container.remove()
         return RunnerResult(output, exit_code, end-begin, memory_cost)
 
