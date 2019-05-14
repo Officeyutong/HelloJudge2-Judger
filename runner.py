@@ -66,6 +66,7 @@ class DockerRunner:
                     memory_cost = int(memory.readline())
             except Exception as ex:
                 print(ex)
+                exit(0)
                 break
         # print(f"Execution done.\nReloading")
         self.container.reload()
