@@ -45,18 +45,23 @@ class DockerRunner:
             lines = list(map(lambda x: x.strip().split(":"), file.readlines()))
             for x in lines:
                 if "cpu" in x[1]:
-                    cpu_file = os.path.join("/sys/fs/cgroup", x[2])
+                    cpu_file = os.path.join(
+                        "/sys/fs/cgroup/cpu", x[2], "cpu.stat")
                 if "memory" in x[1]:
-                    memory_file = os.path.join("/sys/fs/cgroup", x[2])
+                    memory_file = os.path.join(
+                        "/sys/fs/cgroup/memory", x[2], "memory.max_usage_in_bytes.stat")
+        print(f"CPU cgroup file: {cpu_file}")
+        print(f"Memory cgroup file: {memory_file}")
+
         assert cpu_file and memory_file
         while True:
             try:
-                with open(f"/sys/fs/cgroup/cpu/{cpu_file}/cpu.stat", "r") as cpu:
+                with open(cpu_file, "r") as cpu:
                     time_cost = int(cpu.readline().split(" ")[1])
                     if time_cost >= self.time_limit:
                         self.container.kill()
                         break
-                with open(f"/sys/fs/cgroup/memory/{memory_file}/memory.max_usage_in_bytes.stat", "r") as memory:
+                with open(memory_file, "r") as memory:
                     memory_cost = int(memory.readline())
             except Exception as ex:
                 print(ex)
