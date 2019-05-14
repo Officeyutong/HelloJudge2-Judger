@@ -6,3 +6,5 @@ DATA_DIR = "testdatas"
 WEB_URL = "http://127.0.0.1:8080/"
 # 评测机UUID
 JUDGER_UUID = "1234"
+# Docker镜像名
+DOCKER_IMAGE = "ubuntu"

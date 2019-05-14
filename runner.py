@@ -1,7 +1,7 @@
 import docker
 from utils import *
 from collections import namedtuple
-
+import pysnooper
 RunnerResult = namedtuple(
     "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
 
@@ -28,12 +28,14 @@ class DockerRunner:
         self.task_name = task_name
         self.memory_limit = memory_limit
 
+    # @pysnooper.snoop()
     def run(self)->RunnerResult:
         """
         运行指令
         """
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
-            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False)
+            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp")
+        print("Run with command "+self.command)
         import time
         import threading
         import requests.exceptions
@@ -41,7 +43,11 @@ class DockerRunner:
         self.container.start()
         count, total = 0, 0
 
+        begin = time.time()
+        # @pysnooper.snoop()
+
         def memory_handle():
+            # print("Begin")
             for curr in self.container.stats(decode=True):
                 self.container.reload()
                 if self.container.status == "running":
@@ -49,21 +55,23 @@ class DockerRunner:
                     count, total = count+1, total+curr["memory_stats"]["usage"]
                 else:
                     break
+                if time.time()-begin >= self.time_limit:
+                    self.container.kill()
+                    break
                 time.sleep(0.001)
-        threading.Thread(target=memory_handle).start()
-        try:
-            begin = time.time()
-            exit_code = self.container.wait(
-                timeout=self.time_limit)["StatusCode"]
-            end = time.time()
-        except requests.exceptions.ReadTimeout as ex:
-            end = time.time()
+        thread = threading.Thread(target=memory_handle)
+        thread.start()
+
+        exit_code = self.container.wait()["StatusCode"]
+        end = time.time()
         self.container.reload()
         output = self.container.logs().decode()
-        if self.container.status == "running":
-            self.container.kill()
-
         self.container.remove()
+        if thread.isAlive():
+            try:
+                stop_thread(thread)
+            except Exception as ex:
+                pass
         return RunnerResult(output, exit_code, end-begin, 0 if count == 0 else total//count)
 
     def __str__(self):
