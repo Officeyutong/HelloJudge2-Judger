@@ -37,7 +37,7 @@ class DockerRunner:
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
-        memory_cost = 0
+        memory_cost, time_cost = 0, 0
         self.container.start()
         self.container.reload()
         pid = self.container.attrs["State"]["Pid"]
@@ -79,13 +79,13 @@ class DockerRunner:
         attr = self.container.attrs.copy()
         self.container.remove()
         print(attr)
-        TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%f"
-        start = datetime.strptime(
-            attr["State"]["StartedAt"][:-4], TIME_FORMAT_STRING)
-        finish = datetime.strptime(
-            attr["State"]["FinishedAt"][:-4], TIME_FORMAT_STRING)
-        delta = finish-start
-        return RunnerResult(output, attr["State"]["ExitCode"], int(delta.total_seconds()*1000), memory_cost)
+        # TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%f"
+        # start = datetime.strptime(
+        #     attr["State"]["StartedAt"][:-4], TIME_FORMAT_STRING)
+        # finish = datetime.strptime(
+        #     attr["State"]["FinishedAt"][:-4], TIME_FORMAT_STRING)
+        # delta = finish-start
+        return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
