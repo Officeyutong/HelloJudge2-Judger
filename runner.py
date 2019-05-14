@@ -73,6 +73,7 @@ class DockerRunner:
         self.container.reload()
         if self.container.status != "exited":
             self.container.kill()
+        self.container.wait()
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
         self.container.remove()
