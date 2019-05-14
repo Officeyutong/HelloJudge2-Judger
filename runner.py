@@ -66,6 +66,7 @@ class DockerRunner:
             except Exception as ex:
                 print(ex)
                 break
+        print(f"Execution done.")
         self.container.reload()
         if self.container.status == "running":
             self.container.kill()
