@@ -61,6 +61,7 @@ def judge(self: Task, data: dict, judge_config):
                              "lang_id": data["language"], "uuid": config.JUDGER_UUID}))
     # import langs.cpp11
     opt_dir = tempfile.mkdtemp()
+    print(f"Work directory: {opt_dir}")
     # opt_dir = "C:\\Users\\HP\\qwq"
     os.makedirs(opt_dir, exist_ok=True)
     docker_mount_dir = opt_dir
