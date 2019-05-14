@@ -33,45 +33,27 @@ class DockerRunner:
         运行指令
         """
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
-            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp")
+            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit,auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
-        import time
-        import threading
-        import requests.exceptions
-        exit_code = 0
         self.container.start()
-        count, total = 0, 0
-
-        begin = time.time()
-        # @pysnooper.snoop()
-
-        def memory_handle():
-            # print("Begin")
-            for curr in self.container.stats(decode=True):
-                self.container.reload()
-                if self.container.status == "running":
-                    nonlocal count, total
-                    count, total = count+1, total+curr["memory_stats"]["usage"]
-                else:
-                    break
-                if time.time()-begin >= self.time_limit:
-                    self.container.kill()
-                    break
-                time.sleep(0.001)
-        thread = threading.Thread(target=memory_handle)
-        thread.start()
-
-        exit_code = self.container.wait()["StatusCode"]
-        end = time.time()
-        self.container.reload()
-        output = self.container.logs().decode()
-        self.container.remove()
-        if thread.isAlive():
+        id = self.container.id
+        memory_cost, time_cost = 0, 0
+        while True:
             try:
-                stop_thread(thread)
-            except Exception as ex:
-                pass
-        return RunnerResult(output, exit_code, end-begin, 0 if count == 0 else total//count)
+                with open(f"/sys/fs/cgroup/cpu/docker/{id}/cpu.stat", "r") as cpu:
+                    time_cost = int(cpu.readline().split(" ")[1])
+                    if time_cost >= self.time_limit:
+                        self.container.kill()
+                        break
+                with open(f"/sys/fs/cgroup/memory/docker/{id}/memory.max_usage_in_bytes.stat", "r") as memory:
+                    memory_cost = int(memory.readline())
+            except:
+                break
+        output = self.container.logs().decode()
+        self.container.reload()
+        attr = self.container.attrs.copy()
+        self.container.remove()
+        return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
