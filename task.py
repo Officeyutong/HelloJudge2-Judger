@@ -107,7 +107,7 @@ def judge(self: Task, data: dict, judge_config):
                 lang.RUN.format(program=app_output_file, redirect=(
                     "" if problem_data["using_file_io"] else f"< {problem_data['input_file_name']} > {problem_data['output_file_name']}")),
                 int(subtask["memory_limit"])*1024*1024,
-                int(subtask["time_limit"])/1000,
+                int(subtask["time_limit"]),
                 "Judge",
                 docker_client
             )
