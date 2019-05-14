@@ -2,6 +2,7 @@ import docker
 from utils import *
 from collections import namedtuple
 import os
+from datetime import *
 RunnerResult = namedtuple(
     "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
 
@@ -36,49 +37,52 @@ class DockerRunner:
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
-        memory_cost, time_cost = 0, 0
+        memory_cost = 0
         self.container.start()
         self.container.reload()
         pid = self.container.attrs["State"]["Pid"]
         cpu_file, memory_file = None, None
-        with open(f"/proc/{pid}/cgroup", "r") as file:
-            lines = list(map(lambda x: x.strip().split(":"), file.readlines()))
-            for x in lines:
-                if "cpu" in x[1]:
-                    cpu_file = os.path.join(
-                        "/sys/fs/cgroup/cpu" + x[2], "cpu.stat")
-                if "memory" in x[1]:
-                    memory_file = os.path.join(
-                        "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes")
-        # print(f"CPU cgroup file: {cpu_file}")
-        # print(f"Memory cgroup file: {memory_file}")
-        # self.container.reload()
-        # print(self.container.attrs)
-        assert cpu_file and memory_file
-        while True:
-            try:
-                with open(cpu_file, "r") as cpu:
-                    time_cost = int(cpu.readline().split(" ")[1])
-                    if time_cost >= self.time_limit:
-                        self.container.kill()
-                        break
-                with open(memory_file, "r") as memory:
-                    memory_cost = int(memory.readline())
-            except Exception as ex:
-                print(ex)
-                # exit(0)
-                break
-        # print(f"Execution done.\nReloading")
+        try:
+            with open(f"/proc/{pid}/cgroup", "r") as file:
+                lines = list(
+                    map(lambda x: x.strip().split(":"), file.readlines()))
+                for x in lines:
+                    if "cpu" in x[1]:
+                        cpu_file = os.path.join(
+                            "/sys/fs/cgroup/cpu" + x[2], "cpu.stat")
+                    if "memory" in x[1]:
+                        memory_file = os.path.join(
+                            "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes")
+            assert cpu_file and memory_file
+            while True:
+                try:
+                    with open(cpu_file, "r") as cpu:
+                        time_cost = int(cpu.readline().split(" ")[1])
+                        if time_cost >= self.time_limit:
+                            self.container.kill()
+                            break
+                    with open(memory_file, "r") as memory:
+                        memory_cost = int(memory.readline())
+                except Exception as ex:
+                    print(ex)
+                    # exit(0)
+                    break
+        except Exception as ex:
+            import traceback
+            traceback.print_exc(ex)
         self.container.reload()
         if self.container.status == "running":
-            # print("Killing")
             self.container.kill()
-        # print("Getting logs")
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
-        # print("Removing..")
         self.container.remove()
-        return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
+        TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%fZ"
+        start = datetime.strptime(
+            attr["State"]["StartedAt"], TIME_FORMAT_STRING)
+        finish = datetime.strptime(
+            attr["State"]["FinishedAt"], TIME_FORMAT_STRING)
+        delta = finish-start
+        return RunnerResult(output, attr["State"]["ExitCode"], int(delta.total_seconds()*1000), memory_cost)
 
     def __str__(self):
         return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
