@@ -35,17 +35,28 @@ class DockerRunner:
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
-        id = self.container.id
         memory_cost, time_cost = 0, 0
         self.container.start()
+        self.container.reload()
+        pid = self.container.attrs["State"]["Pid"]
+        cpu_file, memory_file = None, None
+        import os
+        with open(f"/proc/{pid}/cgroup", "r") as file:
+            lines = list(map(lambda x: x.split(":"), file.readlines()))
+            for x in lines:
+                if "cpu" in x[1]:
+                    cpu_file = os.path.join("/sys/fs/cgroup", x[2])
+                if "memory" in x[1]:
+                    memory_file = os.path.join("/sys/fs/cgroup", x[2])
+        assert cpu_file and memory_file
         while True:
             try:
-                with open(f"/sys/fs/cgroup/cpu/docker/{id}/cpu.stat", "r") as cpu:
+                with open(f"{cpu_file}/cpu.stat", "r") as cpu:
                     time_cost = int(cpu.readline().split(" ")[1])
                     if time_cost >= self.time_limit:
                         self.container.kill()
                         break
-                with open(f"/sys/fs/cgroup/memory/docker/{id}/memory.max_usage_in_bytes.stat", "r") as memory:
+                with open(f"{memory_file}/memory.max_usage_in_bytes.stat", "r") as memory:
                     memory_cost = int(memory.readline())
             except Exception as ex:
                 print(ex)
