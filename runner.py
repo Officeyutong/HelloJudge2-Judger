@@ -63,13 +63,14 @@ class DockerRunner:
                     with open(memory_file, "r") as memory:
                         memory_cost = int(memory.readline())
                 except Exception as ex:
-                    print(ex)
+                    import traceback
+                    traceback.print_exc(ex)
                     break
         except Exception as ex:
             import traceback
             traceback.print_exc(ex)
         self.container.reload()
-        if self.container.status == "running":
+        if self.container.status != "running":
             self.container.kill()
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
