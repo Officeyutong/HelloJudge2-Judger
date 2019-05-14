@@ -49,11 +49,11 @@ class DockerRunner:
                         "/sys/fs/cgroup/cpu" + x[2], "cpu.stat")
                 if "memory" in x[1]:
                     memory_file = os.path.join(
-                        "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes.stat")
-        print(f"CPU cgroup file: {cpu_file}")
-        print(f"Memory cgroup file: {memory_file}")
-        self.container.reload()
-        print(self.container.attrs)
+                        "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes")
+        # print(f"CPU cgroup file: {cpu_file}")
+        # print(f"Memory cgroup file: {memory_file}")
+        # self.container.reload()
+        # print(self.container.attrs)
         assert cpu_file and memory_file
         while True:
             try:
@@ -66,7 +66,7 @@ class DockerRunner:
                     memory_cost = int(memory.readline())
             except Exception as ex:
                 print(ex)
-                exit(0)
+                # exit(0)
                 break
         # print(f"Execution done.\nReloading")
         self.container.reload()
