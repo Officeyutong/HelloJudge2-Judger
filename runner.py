@@ -66,12 +66,15 @@ class DockerRunner:
             except Exception as ex:
                 print(ex)
                 break
-        print(f"Execution done.")
+        print(f"Execution done.\nReloading")
         self.container.reload()
         if self.container.status == "running":
+            print("Killing")
             self.container.kill()
+        print("Getting logs")
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
+        print("Removing..")
         self.container.remove()
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
