@@ -79,9 +79,10 @@ def judge(self: Task, data: dict, judge_config):
     print("Compile with "+lang.COMPILE.format(
         source=app_source_file, output=app_output_file))
     compile_result: RunnerResult = compile_runner.run()
+    print(f"Compile result = {compile_result}")
     if compile_result.exit_code:
         update_status(
-            {}, f"编译失败！\n{compile_result.output}\n时间开销:{compile_result.time_cost}\n内存开销:{compile_result.memory_cost}\nExit code:{compile_result.exit_code}")
+            {}, f"编译失败！\n{compile_result.output}\n时间开销:{compile_result.time_cost}ms\n内存开销:{compile_result.memory_cost}MB\nExit code:{compile_result.exit_code}")
         return
     update_status(data["judge_result"], "编译完成")
     judge_result = data["judge_result"]
