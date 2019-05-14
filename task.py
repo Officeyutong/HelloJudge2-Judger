@@ -156,4 +156,5 @@ def judge(self: Task, data: dict, judge_config):
             subtask_result["score"]) == int(subtask["score"]) else "unaccepted"
     update_status(
         judge_result, f"{compile_result.output}\n编译时间开销:{int(compile_result.time_cost)}s\n编译内存开销:{int(compile_result.memory_cost/1024/1024)}MB\nExit code:{compile_result.exit_code}")
+    print("Ok")
     shutil.rmtree(opt_dir)

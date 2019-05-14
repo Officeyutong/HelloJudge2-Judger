@@ -1,7 +1,6 @@
 import docker
 from utils import *
 from collections import namedtuple
-import pysnooper
 RunnerResult = namedtuple(
     "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
 
