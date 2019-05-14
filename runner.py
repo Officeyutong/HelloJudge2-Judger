@@ -33,7 +33,7 @@ class DockerRunner:
         运行指令
         """
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
-            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit,auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
+            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
         self.container.start()
         id = self.container.id
@@ -49,8 +49,10 @@ class DockerRunner:
                     memory_cost = int(memory.readline())
             except:
                 break
-        output = self.container.logs().decode()
         self.container.reload()
+        if self.container.status == "running":
+            self.container.kill()
+        output = self.container.logs().decode()
         attr = self.container.attrs.copy()
         self.container.remove()
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
