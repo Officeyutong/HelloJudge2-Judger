@@ -52,7 +52,8 @@ class DockerRunner:
                         "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes.stat")
         print(f"CPU cgroup file: {cpu_file}")
         print(f"Memory cgroup file: {memory_file}")
-
+        self.container.reload()
+        print(self.container.attrs)
         assert cpu_file and memory_file
         while True:
             try:
@@ -66,15 +67,15 @@ class DockerRunner:
             except Exception as ex:
                 print(ex)
                 break
-        print(f"Execution done.\nReloading")
+        # print(f"Execution done.\nReloading")
         self.container.reload()
         if self.container.status == "running":
-            print("Killing")
+            # print("Killing")
             self.container.kill()
-        print("Getting logs")
+        # print("Getting logs")
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
-        print("Removing..")
+        # print("Removing..")
         self.container.remove()
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
