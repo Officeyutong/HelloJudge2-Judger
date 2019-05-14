@@ -46,10 +46,10 @@ class DockerRunner:
             for x in lines:
                 if "cpu" in x[1]:
                     cpu_file = os.path.join(
-                        "/sys/fs/cgroup/cpu", x[2], "cpu.stat")
+                        "/sys/fs/cgroup/cpu" + x[2], "cpu.stat")
                 if "memory" in x[1]:
                     memory_file = os.path.join(
-                        "/sys/fs/cgroup/memory", x[2], "memory.max_usage_in_bytes.stat")
+                        "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes.stat")
         print(f"CPU cgroup file: {cpu_file}")
         print(f"Memory cgroup file: {memory_file}")
 
