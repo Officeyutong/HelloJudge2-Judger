@@ -1,6 +1,7 @@
 import docker
 from utils import *
 from collections import namedtuple
+import os
 RunnerResult = namedtuple(
     "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
 
@@ -40,7 +41,6 @@ class DockerRunner:
         self.container.reload()
         pid = self.container.attrs["State"]["Pid"]
         cpu_file, memory_file = None, None
-        import os
         with open(f"/proc/{pid}/cgroup", "r") as file:
             lines = list(map(lambda x: x.strip().split(":"), file.readlines()))
             for x in lines:
