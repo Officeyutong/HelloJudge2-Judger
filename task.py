@@ -115,7 +115,7 @@ def judge(self: Task, data: dict, judge_config):
 
             if result.memory_cost/1024/1024 >= int(subtask["memory_limit"]):
                 testcase_result["status"] = "memory_limit_exceed"
-            elif result.time_cost >= int(subtask["time_limit"]):
+            elif result.time_cost*1000 >= int(subtask["time_limit"]):
                 testcase_result["status"] = "time_limit_exceed"
             elif result.exit_code:
                 testcase_result["status"] = "runtime_error"
