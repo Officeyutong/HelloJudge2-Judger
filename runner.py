@@ -51,12 +51,12 @@ class DockerRunner:
         assert cpu_file and memory_file
         while True:
             try:
-                with open(f"{cpu_file}/cpu.stat", "r") as cpu:
+                with open(f"/sys/fs/cgroup/cpu/{cpu_file}/cpu.stat", "r") as cpu:
                     time_cost = int(cpu.readline().split(" ")[1])
                     if time_cost >= self.time_limit:
                         self.container.kill()
                         break
-                with open(f"{memory_file}/memory.max_usage_in_bytes.stat", "r") as memory:
+                with open(f"/sys/fs/cgroup/memory/{memory_file}/memory.max_usage_in_bytes.stat", "r") as memory:
                     memory_cost = int(memory.readline())
             except Exception as ex:
                 print(ex)
