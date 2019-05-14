@@ -63,28 +63,20 @@ class DockerRunner:
                     with open(memory_file, "r") as memory:
                         memory_cost = int(memory.readline())
                 except Exception as ex:
-                    # import traceback
-                    # traceback.print_exc(ex)
                     print(ex)
                     break
         except Exception as ex:
-            import traceback
-            traceback.print_exc(ex)
+            print(ex)
         self.container.reload()
-        if self.container.status != "exited":
-            self.container.kill()
-        # self.container.wait()
+        try:
+            if self.container.status != "exited":
+                self.container.kill()
+        except:
+            pass
         self.container.reload()
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
         self.container.remove()
-        print(attr)
-        # TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%f"
-        # start = datetime.strptime(
-        #     attr["State"]["StartedAt"][:-4], TIME_FORMAT_STRING)
-        # finish = datetime.strptime(
-        #     attr["State"]["FinishedAt"][:-4], TIME_FORMAT_STRING)
-        # delta = finish-start
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
     def __str__(self):
