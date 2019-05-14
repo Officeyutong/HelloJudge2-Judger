@@ -53,7 +53,6 @@ class DockerRunner:
                     if "memory" in x[1]:
                         memory_file = os.path.join(
                             "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes")
-            assert cpu_file and memory_file
             while True:
                 try:
                     with open(cpu_file, "r") as cpu:
@@ -65,7 +64,6 @@ class DockerRunner:
                         memory_cost = int(memory.readline())
                 except Exception as ex:
                     print(ex)
-                    # exit(0)
                     break
         except Exception as ex:
             import traceback
@@ -76,11 +74,11 @@ class DockerRunner:
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
         self.container.remove()
-        TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%fZ"
+        TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%f"
         start = datetime.strptime(
-            attr["State"]["StartedAt"], TIME_FORMAT_STRING)
+            attr["State"]["StartedAt"][:-4], TIME_FORMAT_STRING)
         finish = datetime.strptime(
-            attr["State"]["FinishedAt"], TIME_FORMAT_STRING)
+            attr["State"]["FinishedAt"][:-4], TIME_FORMAT_STRING)
         delta = finish-start
         return RunnerResult(output, attr["State"]["ExitCode"], int(delta.total_seconds()*1000), memory_cost)
 
