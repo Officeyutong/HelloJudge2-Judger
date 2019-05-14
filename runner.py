@@ -42,7 +42,7 @@ class DockerRunner:
         cpu_file, memory_file = None, None
         import os
         with open(f"/proc/{pid}/cgroup", "r") as file:
-            lines = list(map(lambda x: x.split(":"), file.readlines()))
+            lines = list(map(lambda x: x.strip().split(":"), file.readlines()))
             for x in lines:
                 if "cpu" in x[1]:
                     cpu_file = os.path.join("/sys/fs/cgroup", x[2])
