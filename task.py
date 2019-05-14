@@ -110,7 +110,7 @@ def judge(self: Task, data: dict, judge_config):
                 docker_client
             )
             result: RunnerResult = runner.run()
-            # print("Run result = "+result.output)
+            print(f"Run result = {result}")
             testcase_result["message"] = f"时间: {int(result.time_cost*1000)}ms  内存: {int(result.memory_cost/1024/1024)}MB | "
 
             if result.memory_cost/1024/1024 >= int(subtask["memory_limit"]):
