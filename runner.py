@@ -74,6 +74,7 @@ class DockerRunner:
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
         self.container.remove()
+        print(attr)
         TIME_FORMAT_STRING = "%Y-%m-%dT%H:%M:%S.%f"
         start = datetime.strptime(
             attr["State"]["StartedAt"][:-4], TIME_FORMAT_STRING)
