@@ -35,9 +35,9 @@ class DockerRunner:
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
-        self.container.start()
         id = self.container.id
         memory_cost, time_cost = 0, 0
+        self.container.start()
         while True:
             try:
                 with open(f"/sys/fs/cgroup/cpu/docker/{id}/cpu.stat", "r") as cpu:
@@ -47,7 +47,8 @@ class DockerRunner:
                         break
                 with open(f"/sys/fs/cgroup/memory/docker/{id}/memory.max_usage_in_bytes.stat", "r") as memory:
                     memory_cost = int(memory.readline())
-            except:
+            except Exception as ex:
+                print(ex)
                 break
         self.container.reload()
         if self.container.status == "running":
