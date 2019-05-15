@@ -3,6 +3,7 @@ from utils import *
 from collections import namedtuple
 import os
 from datetime import *
+import time
 RunnerResult = namedtuple(
     "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
 
@@ -30,43 +31,19 @@ class DockerRunner:
         self.memory_limit = memory_limit
 
     # @pysnooper.snoop()
-    def run(self)->RunnerResult:
+    def run(self) -> RunnerResult:
         """
         运行指令
         """
         self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
-        memory_cost, time_cost = 0, 0
+
         self.container.start()
         self.container.reload()
-        pid = self.container.attrs["State"]["Pid"]
-        cpu_file, memory_file = None, None
-        try:
-            with open(f"/proc/{pid}/cgroup", "r") as file:
-                lines = list(
-                    map(lambda x: x.strip().split(":"), file.readlines()))
-                for x in lines:
-                    if "cpu" in x[1]:
-                        cpu_file = os.path.join(
-                            "/sys/fs/cgroup/cpu" + x[2], "cpu.stat")
-                    if "memory" in x[1]:
-                        memory_file = os.path.join(
-                            "/sys/fs/cgroup/memory" + x[2], "memory.max_usage_in_bytes")
-            while True:
-                try:
-                    with open(cpu_file, "r") as cpu:
-                        time_cost = int(cpu.readline().split(" ")[1])
-                        if time_cost >= self.time_limit:
-                            self.container.kill()
-                            break
-                    with open(memory_file, "r") as memory:
-                        memory_cost = int(memory.readline())
-                except Exception as ex:
-                    print(ex)
-                    break
-        except Exception as ex:
-            print(ex)
+        import docker_watcher
+        time_cost, memory_cost = docker_watcher.watch(
+            self.container.attrs["State"]["Pid"], self.time_limit)
         self.container.reload()
         try:
             if self.container.status != "exited":

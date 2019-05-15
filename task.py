@@ -121,11 +121,13 @@ def judge(self: Task, data: dict, judge_config):
                 testcase_result["status"] = "time_limit_exceed"
             elif result.exit_code:
                 testcase_result["status"] = "runtime_error"
-                testcase_result["message"] = f"退出代码: {result.exit_code}"
+                testcase_result["message"] += f"退出代码: {result.exit_code}"
             else:
-                with open(os.path.join(opt_dir, problem_data["output_file_name"]), "r") as f:
-                    user_output = f.read()
-
+                try:
+                    with open(os.path.join(opt_dir, problem_data["output_file_name"]), "r") as f:
+                        user_output = f.read()
+                except:
+                    user_output = ""
                 # 检验答案正确性
                 with open(os.path.join(
                         path, testcase["output"]), "r") as file:
@@ -133,7 +135,6 @@ def judge(self: Task, data: dict, judge_config):
                         file.readlines(), user_output.split("\n"))
                 if not ok:
                     testcase_result["status"] = "wrong_answer"
-
                 else:
                     testcase_result["status"] = "accepted"
                 if testcase_result["status"] == "accepted":

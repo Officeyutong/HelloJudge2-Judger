@@ -4,6 +4,11 @@ test/
 w
 langs/
 test.py
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+.vscode/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
