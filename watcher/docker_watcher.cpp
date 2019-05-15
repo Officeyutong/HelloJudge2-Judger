@@ -1,5 +1,7 @@
 #include <inttypes.h>
+#include <signal.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/python.hpp>
@@ -50,22 +52,18 @@ python::tuple watch(int pid, int time_limit) {
         }
     }
     fclose(fp);
-    // cout << "memory file = " << memory << endl << " cpu file = " << cpu << endl;
+    // cout << "memory file = " << memory << endl << " cpu file = " << cpu <<
+    // endl;
     auto begin = get_current_usec();
     int64_t memory_result = -1, time_result = -1;
-    while (true) {
+    while (!kill(pid, 0)) {
         auto fp = fopen(memory.c_str(), "r");
         if (fp) {
             int64_t curr;
             if (fscanf(fp, "%" SCNd64, &curr) > 0) {
                 memory_result = curr;
                 fclose(fp);
-            } else {
-                break;
             }
-
-        } else {
-            break;
         }
         time_result = get_current_usec() - begin;
         if (time_result >= time_limit * 1000) {

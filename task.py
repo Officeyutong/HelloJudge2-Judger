@@ -47,7 +47,8 @@ def judge(self: Task, data: dict, judge_config):
     comparator = None
     print(problem_data)
     if problem_data["spj_filename"]:
-        comparator = SPJComparator(problem_data["spj_filename"])
+        comparator = SPJComparator(os.path.join(
+            path, problem_data["spj_filename"]), lambda x: update_status({}, x), data["code"])
     else:
         comparator = SimpleComparator()
     # 下载语言定义
@@ -128,20 +129,18 @@ def judge(self: Task, data: dict, judge_config):
                         user_output = f.read()
                 except:
                     user_output = ""
+                full_score = subtask["score"]//len(
+                    subtask["testcases"]) if subtask["method"] == "sum" else 1
                 # 检验答案正确性
                 with open(os.path.join(
                         path, testcase["output"]), "r") as file:
-                    ok, message = comparator.compare(
-                        file.readlines(), user_output.split("\n"))
-                if not ok:
+                    score, message = comparator.compare(
+                        file.readlines(), user_output.split("\n"), full_score)
+                if score < full_score:
                     testcase_result["status"] = "wrong_answer"
                 else:
                     testcase_result["status"] = "accepted"
-                if testcase_result["status"] == "accepted":
-                    testcase_result["score"] = int(
-                        subtask["score"])//len(subtask["testcases"])
-                else:
-                    testcase_result["score"] = 0
+                testcase_result["score"] = score
                 testcase_result["message"] += message
             if testcase_result["status"] != "accepted" and subtask["method"] == "min":
                 skip = True
@@ -154,10 +153,11 @@ def judge(self: Task, data: dict, judge_config):
         else:
             subtask_result["score"] = sum(
                 map(lambda x: x["score"], subtask_result["testcases"]))
-
         subtask_result["status"] = "accepted" if int(
             subtask_result["score"]) == int(subtask["score"]) else "unaccepted"
     update_status(
         judge_result, f"{compile_result.output}\n编译时间开销:{int(compile_result.time_cost)}ms\n编译内存开销:{int(compile_result.memory_cost/1024/1024)}MB\nExit code:{compile_result.exit_code}")
-    print("Ok")
+    print("Removing files..")
     shutil.rmtree(opt_dir)
+    print("Ok")
+    
