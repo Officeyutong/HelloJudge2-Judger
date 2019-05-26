@@ -26,19 +26,14 @@ python::tuple watch(int pid, int time_limit) {
     char buf[1024];
     sprintf(buf, "/proc/%d/cgroup", pid);
     auto fp = fopen(buf, "r");
-    // cout << "Watching pid " << pid << endl;
     if (!fp) {
-        // cout << "Error: " << errno << endl;
         return python::make_tuple(0, 0);
     }
     while (fgets(buf, 1024, fp)) {
-        // cout<<id<<" "<<type<<" "<<path<<endl;
         std::vector<std::string> result;
         std::string str = buf;
         while (isspace(str.back())) str.pop_back();
         split(result, str, boost::is_any_of(":"), boost::token_compress_on);
-        // for (auto x : result) cout << x << " ";
-        // cout << endl;
         if (result.size() == 3) {
             if (strstr(result[1].c_str(), "cpu"))
                 cpu =
@@ -51,9 +46,6 @@ python::tuple watch(int pid, int time_limit) {
                         .str();
         }
     }
-    fclose(fp);
-    // cout << "memory file = " << memory << endl << " cpu file = " << cpu <<
-    // endl;
     auto begin = get_current_usec();
     int64_t memory_result = -1, time_result = -1;
     while (!kill(pid, 0)) {
@@ -72,7 +64,7 @@ python::tuple watch(int pid, int time_limit) {
     }
     if (memory_result == -1) memory_result = 0;
     if (time_result == -1) time_result = 0;
-
+    fclose(fp);
     return python::make_tuple(time_result / 1000, memory_result);
 }
 

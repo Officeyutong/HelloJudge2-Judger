@@ -5,7 +5,7 @@ import os
 from datetime import *
 import time
 RunnerResult = namedtuple(
-    "RunnerResult", ["output", "exit_code", "time_cost", "memory_cost"])
+    "RunnerResult", "output exit_code time_cost memory_cost")
 
 
 class DockerRunner:
