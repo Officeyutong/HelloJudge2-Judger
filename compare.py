@@ -63,8 +63,10 @@ class SimpleComparator:
             user_data.pop()
         while std_data and not std_data[-1].strip():
             std_data.pop()
+
+        # print(user_data,std_data)
         if len(user_data) != len(std_data):
-            return CompareResult(0, f"Different line count: {len(user_data)} and {len(std_data)}.")
+            return CompareResult(0, f"Different line count: Your:{len(user_data)} and {len(std_data)}.")
         for index, val in enumerate(zip(user_data, std_data)):
             a, b = val
             if a.strip() != b.strip():

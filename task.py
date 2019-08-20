@@ -79,6 +79,10 @@ def judge(self: Task, data: dict, judge_config):
         source=app_source_file, output=app_output_file), 512*1024*1024, judge_config["compile_time_limit"], "Compile", docker_client)
     print("Compile with "+lang.COMPILE.format(
         source=app_source_file, output=app_output_file))
+    # 编译时提供给程序的文件
+    for x in problem_data["provides"]:
+        shutil.copy(os.path.join(
+            path, x), os.path.join(opt_dir, x))
     # 编译用户程序
     compile_result: RunnerResult = compile_runner.run()
     print(f"Compile result = {compile_result}")
@@ -106,7 +110,10 @@ def judge(self: Task, data: dict, judge_config):
             input_file = problem_data["input_file_name"] if problem_data["using_file_io"] else "in"
             output_file = problem_data["output_file_name"] if problem_data["using_file_io"] else "out"
             shutil.copy(os.path.join(
-                path, testcase["input"]), os.path.join(opt_dir, problem_data["input_file_name"]))
+                path, testcase["input"]), os.path.join(opt_dir, input_file))
+            # print(
+            #     f'Copy {os.path.join(path, testcase["input"])} to {os.path.join(opt_dir, problem_data["input_file_name"])}')
+
             runner = DockerRunner(
                 config.DOCKER_IMAGE,
                 opt_dir,
@@ -133,7 +140,7 @@ def judge(self: Task, data: dict, judge_config):
                 testcase_result["message"] += f"退出代码: {result.exit_code}"
             else:
                 try:
-                    with open(os.path.join(opt_dir, problem_data["output_file_name"]), "r") as f:
+                    with open(os.path.join(opt_dir, output_file), "r") as f:
                         user_output = f.read()
                 except:
                     user_output = ""
@@ -143,7 +150,7 @@ def judge(self: Task, data: dict, judge_config):
                 with open(os.path.join(
                         path, testcase["output"]), "r") as file:
                     score, message = comparator.compare(
-                        file.readlines(), user_output.split("\n"), full_score)
+                        user_output.split("\n"), file.readlines(), full_score)
                 # 非满分一律判为WA
                 if score < full_score:
                     testcase_result["status"] = "wrong_answer"
