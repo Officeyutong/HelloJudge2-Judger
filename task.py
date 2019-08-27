@@ -35,24 +35,39 @@ def judge(self: Task, data: dict, judge_config):
     # 题目文件目录
     path = os.path.join(config.DATA_DIR, str(data["problem_id"]))
     os.makedirs(path, exist_ok=True)
-    for file in file_list:
-        current_file = os.path.join(path, file["name"])
-        # 不存在 或者时间早于更新时间
-        if not os.path.exists(current_file+".lock") or float(read_file(current_file+".lock")) < float(file["last_modified_time"]):
-            update_status(data["judge_result"], f"下载 {file['name']} 中..")
-            print(f"Downloading {file}")
-            with open(current_file, "wb") as target:
-                target.write(http_post(urljoin(config.WEB_URL, "/api/judge/download_file"), {
-                             "problem_id": data["problem_id"], "filename": file["name"], "uuid": config.JUDGER_UUID}))
-            with open(current_file+".lock", "w") as f:
-                import time
-                f.write(f"{time.time()}")
-    update_status(data["judge_result"], "文件同步完成")
-    comparator = None
+    if judge_config["auto_sync_files"]:
+        for file in file_list:
+            current_file = os.path.join(path, file["name"])
+            # 不存在 或者时间早于更新时间
+            if not os.path.exists(current_file+".lock") or float(read_file(current_file+".lock")) < float(file["last_modified_time"]):
+                update_status(data["judge_result"], f"下载 {file['name']} 中..")
+                print(f"Downloading {file}")
+                with open(current_file, "wb") as target:
+                    target.write(http_post(urljoin(config.WEB_URL, "/api/judge/download_file"), {
+                        "problem_id": data["problem_id"], "filename": file["name"], "uuid": config.JUDGER_UUID}))
+                with open(current_file+".lock", "w") as f:
+                    import time
+                    f.write(f"{time.time()}")
+        update_status(data["judge_result"], "文件同步完成")
+    else:
+        update_status(data["judge_result"], "文件同步跳过")
     print(problem_data)
     if problem_data["spj_filename"]:
+        spj_lang = problem_data["spj_filename"][4:problem_data["spj_filename"].rindex(
+            ".")]
+        update_status(data["judge_result"], "下载SPJ语言配置中")
+        os.makedirs(os.path.join(basedir, "langs"), exist_ok=True)
+        with open(os.path.join("langs", spj_lang+".py"), "wb") as file:
+            file.write(http_post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), {
+                "lang_id": spj_lang, "uuid": config.JUDGER_UUID}))
         comparator = SPJComparator(os.path.join(
-            path, problem_data["spj_filename"]), lambda x: update_status({}, x), data["code"])
+            path,
+            problem_data["spj_filename"]),
+            lambda x: update_status(data["judge_result"], x),
+            data["code"],
+            importlib.import_module("langs."+spj_lang),
+            judge_config["spj_execute_time_limit"],
+            config.DOCKER_IMAGE)
     else:
         # 简单比较器
         comparator = SimpleComparator()
@@ -76,9 +91,9 @@ def judge(self: Task, data: dict, judge_config):
     with open(os.path.join(opt_dir, app_source_file), "w") as file:
         file.write(data["code"])
     compile_runner = DockerRunner(config.DOCKER_IMAGE, opt_dir, lang.COMPILE.format(
-        source=app_source_file, output=app_output_file), 512*1024*1024, judge_config["compile_time_limit"], "Compile", docker_client)
+        source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]), 512*1024*1024, judge_config["compile_time_limit"], "Compile", docker_client)
     print("Compile with "+lang.COMPILE.format(
-        source=app_source_file, output=app_output_file))
+        source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]))
     # 编译时提供给程序的文件
     for x in problem_data["provides"]:
         shutil.copy(os.path.join(
@@ -113,14 +128,14 @@ def judge(self: Task, data: dict, judge_config):
                 path, testcase["input"]), os.path.join(opt_dir, input_file))
             # print(
             #     f'Copy {os.path.join(path, testcase["input"])} to {os.path.join(opt_dir, problem_data["input_file_name"])}')
-
+            subtask["time_limit"] = int(int(subtask["time_limit"])*1.05)
             runner = DockerRunner(
                 config.DOCKER_IMAGE,
                 opt_dir,
                 lang.RUN.format(program=app_output_file, redirect=(
                     "" if problem_data["using_file_io"] else f"< {input_file} > {output_file}")),
                 int(subtask["memory_limit"])*1024*1024,
-                int(subtask["time_limit"]),
+                int(int(subtask["time_limit"])),
                 "Judge",
                 docker_client
             )
@@ -151,6 +166,7 @@ def judge(self: Task, data: dict, judge_config):
                         path, testcase["output"]), "r") as file:
                     score, message = comparator.compare(
                         user_output.split("\n"), file.readlines(), full_score)
+
                 # 非满分一律判为WA
                 if score < full_score:
                     testcase_result["status"] = "wrong_answer"
@@ -159,6 +175,10 @@ def judge(self: Task, data: dict, judge_config):
                 else:
                     # ???
                     testcase_result["status"] = "what_happened"
+                if score == -1:
+                    # SPJ运行失败
+                    testcase_result["status"] = "judge_failed"
+                    score = 0
                 testcase_result["score"] = score
                 testcase_result["message"] += message
             if testcase_result["status"] != "accepted" and subtask["method"] == "min":

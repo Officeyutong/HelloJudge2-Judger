@@ -3,6 +3,7 @@ import tempfile
 import shutil
 import os
 from runner import *
+import pathlib
 CompareResult = namedtuple("CompareResult", ("score", "message"))
 
 
@@ -16,12 +17,10 @@ class SPJComparator:
     例如spj_cpp11.cpp ,spj_java8.java
     SPJ运行时间不会被计算在这个测试点的时间开销中
     评测时spj所在目录下将会有以下文件:
-    full_score: 这个测试点的满分
-    user_code: 用户代码
-    user_output: 用户程序输出
+    user_out: 用户程序输出
     answer: 测试点标准答案
     SPJ应该在限制的时间内将结果输出到以下文件
-    score: 该测试点得分
+    score: 该测试点得分(0~100,自动折合)
     message: 发送给用户的信息
     """
 
@@ -29,6 +28,7 @@ class SPJComparator:
         updator("编译SPJ中..")
         self.updator = updator
         self.work_dir = tempfile.mkdtemp()
+        self.word_dir_path = pathlib.PurePath(self.work_dir)
         self.lang = lang
         self.run_time_limit = run_time_limit
         self.image = image
@@ -36,19 +36,52 @@ class SPJComparator:
             self.work_dir, lang.SOURCE_FILE.format(filename="spj")))
         runner = DockerRunner(
             image,
-            work_dir,
+            self.work_dir,
             lang.COMPILE.format(source=lang.SOURCE_FILE.format(
-                filename="spj"), output=lang.OUTPUT_FILE.format(filename="spj")),
+                filename="spj"), output=lang.OUTPUT_FILE.format(filename="spj"), extra=""),
             512*1024*1024,
-            3000
+            3000,
+            "SPJ"
         )
         result = runner.run()
-        if not os.path.exists(os.path.join(work_dir, lang.OUTPUT_FILE.format(filename="spj"))):
-            raise RuntimeError(f"SPJ编译失败: {result.output}")
-        
+        if not os.path.exists(os.path.join(self.work_dir, lang.OUTPUT_FILE.format(filename="spj"))) or result.exit_code != 0:
+            raise RuntimeError(
+                f"SPJ编译失败: {result.output}\nExit code:{result.exit_code}")
 
     def compare(self, user_data, std_data, full_score) -> CompareResult:
-        pass
+        with open(self.word_dir_path/"user_out", "w") as user_out:
+            for line in user_data:
+                user_out.write(line+"\n")
+        with open(self.word_dir_path/"answer", "w") as answer:
+            for line in std_data:
+                answer.write(line+"\n")
+        with open(self.word_dir_path/"full_score", "w") as f:
+            f.write(str(full_score))
+        self.updator("运行SPJ中..")
+        runner = DockerRunner(
+            self.image,
+            self.work_dir,
+            self.lang.RUN.format(
+                program=self.lang.OUTPUT_FILE.format(filename="spj"), redirect=""),
+            512*1024*1024,
+            3000,
+            "SPJ"
+        )
+        result: RunnerResult = runner.run()
+        if result.exit_code != 0:
+            return CompareResult(-1, f"SPJ exit with a code{result.exit_code}")
+        import os
+        if not os.path.exists(self.word_dir_path/"score"):
+            return CompareResult(-1, "SPJ didn't provide a valid score file.")
+        with open(self.word_dir_path/"score", "r") as f:
+            score = int(f.readline().strip())
+        message = "SPJ told you nothing but a score"
+        if os.path.exists(self.word_dir_path/"message"):
+            with open(self.word_dir_path/"message", "r") as f:
+                message = f.readline()
+        if score < 0 or score > 100:
+            return CompareResult(-1, f"SPJ output an unrecognizable score: {score}")
+        return CompareResult(int(score/100*full_score+0.5), message)
 
     def __del__(self):
         shutil.rmtree(self.work_dir)
