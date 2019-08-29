@@ -3,12 +3,12 @@ import ctypes
 import urllib.parse
 import urllib.request
 from contextlib import contextmanager
-
+import requests
 
 def http_post(url: str, data: dict = {})->bytes:
-    with urllib.request.urlopen(url, data=urllib.parse.urlencode(data).encode()) as urlf:
-        data = urlf.read()
-        return data
+    with requests.post(url, data=data) as urlf:
+        # data = urlf.read()
+        return urlf.content
 
 
 def decode_json(obj):

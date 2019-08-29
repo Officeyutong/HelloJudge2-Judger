@@ -1,3 +1,4 @@
 celery
 docker
 redis
+requests
