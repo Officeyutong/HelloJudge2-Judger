@@ -51,7 +51,7 @@ def judge(self: Task, data: dict, judge_config):
         update_status(data["judge_result"], "文件同步完成")
     else:
         update_status(data["judge_result"], "文件同步跳过")
-    print(problem_data)
+    # print(problem_data)
     if problem_data["spj_filename"]:
         spj_lang = problem_data["spj_filename"][4:problem_data["spj_filename"].rindex(
             ".")]
@@ -111,6 +111,8 @@ def judge(self: Task, data: dict, judge_config):
     for subtask in problem_data["subtasks"]:
         print(subtask)
         subtask_result = judge_result[subtask["name"]]
+        # 时限放宽为1.05倍防止卡常
+        subtask["time_limit"] = int(int(subtask["time_limit"])*1.05)
         skip = False
         # 评测子任务的每一个测试点
         for i, testcase in enumerate(subtask["testcases"]):
@@ -128,7 +130,7 @@ def judge(self: Task, data: dict, judge_config):
                 path, testcase["input"]), os.path.join(opt_dir, input_file))
             # print(
             #     f'Copy {os.path.join(path, testcase["input"])} to {os.path.join(opt_dir, problem_data["input_file_name"])}')
-            subtask["time_limit"] = int(int(subtask["time_limit"])*1.05)
+            
             runner = DockerRunner(
                 config.DOCKER_IMAGE,
                 opt_dir,
@@ -141,7 +143,7 @@ def judge(self: Task, data: dict, judge_config):
             )
             # 运行用户程序
             result: RunnerResult = runner.run()
-            print(f"Time limit: {subtask['time_limit']},time cost: {result.time_cost}")
+            # print(f"Time limit: {subtask['time_limit']},time cost: {result.time_cost}")
             print(f"Run result = {result}")
             testcase_result["memory_cost"] = result.memory_cost
             testcase_result["time_cost"] = result.time_cost
