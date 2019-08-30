@@ -72,7 +72,6 @@ python::tuple watch(int pid, int time_limit) {
         memory_result = 0;
     else
         memory_result = total_memory_cost / memory_cost_count;
-    if (memory_result == -1) memory_result = 0;
     if (time_result == -1) time_result = 0;
     fclose(fp);
     return python::make_tuple(time_result / 1000, memory_result);

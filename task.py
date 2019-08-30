@@ -16,9 +16,9 @@ sys.path.append(basedir)
 @app.task(bind=True)
 def judge(self: Task, data: dict, judge_config):
     # 更新评测状态
-    def update_status(judge_result, message):
+    def update_status(judge_result, message, extra_status=""):
         http_post(urljoin(config.WEB_URL, "/api/judge/update"), data={
-                  "uuid": config.JUDGER_UUID, "judge_result": encode_json(judge_result), "submission_id": data["id"], "message": message})
+                  "uuid": config.JUDGER_UUID, "judge_result": encode_json(judge_result), "submission_id": data["id"], "message": message, "extra_status": extra_status})
     # 抛出异常时调用
 
     def on_failure(exc, task_id, args, kwargs, einfo):
@@ -103,7 +103,7 @@ def judge(self: Task, data: dict, judge_config):
     print(f"Compile result = {compile_result}")
     if compile_result.exit_code:
         update_status(
-            {}, f"编译失败！\n{compile_result.output}\n时间开销:{compile_result.time_cost}ms\n内存开销:{compile_result.memory_cost}Bytes\nExit code:{compile_result.exit_code}")
+            {}, f"{compile_result.output}\n时间开销:{compile_result.time_cost}ms\n内存开销:{compile_result.memory_cost}Bytes\nExit code:{compile_result.exit_code}", extra_status="compile_error")
         return
     update_status(data["judge_result"], "编译完成")
     judge_result = data["judge_result"]
@@ -130,7 +130,7 @@ def judge(self: Task, data: dict, judge_config):
                 path, testcase["input"]), os.path.join(opt_dir, input_file))
             # print(
             #     f'Copy {os.path.join(path, testcase["input"])} to {os.path.join(opt_dir, problem_data["input_file_name"])}')
-            
+
             runner = DockerRunner(
                 config.DOCKER_IMAGE,
                 opt_dir,

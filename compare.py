@@ -32,6 +32,7 @@ class SPJComparator:
         self.lang = lang
         self.run_time_limit = run_time_limit
         self.image = image
+        self.code = code
         shutil.copyfile(spj_file_name, os.path.join(
             self.work_dir, lang.SOURCE_FILE.format(filename="spj")))
         runner = DockerRunner(
