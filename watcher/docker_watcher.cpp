@@ -60,7 +60,7 @@ python::tuple watch(int pid, int time_limit) {
             fclose(fp);
         }
         time_result = get_current_usec() - begin;
-        if (time_result >= time_limit * 1000) {
+        if (time_result >= time_limit) {
             break;
         }
     }
