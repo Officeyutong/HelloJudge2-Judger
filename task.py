@@ -141,6 +141,7 @@ def judge(self: Task, data: dict, judge_config):
             )
             # 运行用户程序
             result: RunnerResult = runner.run()
+            print(f"Time limit: {subtask['time_limit']},time cost: {result.time_cost}")
             print(f"Run result = {result}")
             testcase_result["memory_cost"] = result.memory_cost
             testcase_result["time_cost"] = result.time_cost
