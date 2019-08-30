@@ -52,8 +52,9 @@ python::tuple watch(int pid, int time_limit) {
     const char* memory_file = memory.c_str();
     cout << "before loop" << endl;
     while (!kill(pid, 0)) {
-        auto fp = fopen(memory_file, "r");
-        if (memory_result == -1 && fp) {
+        if (memory_result == -1) {
+            auto fp = fopen(memory_file, "r");
+            if (!fp) continue;
             int64_t curr;
             // fseek()
             cout << "setting memory" << endl;
