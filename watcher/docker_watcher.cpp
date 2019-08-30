@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/python.hpp>
@@ -10,7 +11,6 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <unistd.h>
 using namespace boost;
 using algorithm::split;
 using boost::format;
@@ -49,10 +49,12 @@ python::tuple watch(int pid, int time_limit) {
     }
     auto begin = get_current_usec();
     int64_t memory_result = -1, time_result = -1;
+    const char* memory_file = memory.c_str();
     while (!kill(pid, 0)) {
-        auto fp = fopen(memory.c_str(), "r");
-        if (fp) {
+        auto fp = fopen(memory_file, "r");
+        if (!fp) {
             int64_t curr;
+            // fseek()
             if (fscanf(fp, "%" SCNd64, &curr) > 0) {
                 memory_result = curr;
                 fclose(fp);
