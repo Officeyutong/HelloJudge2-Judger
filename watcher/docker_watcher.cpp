@@ -49,15 +49,15 @@ python::tuple watch(int pid, int time_limit) {
     auto begin = get_current_usec();
     int64_t memory_result = -1, time_result = -1;
     time_limit *= 1000;
-    const auto memory_file_ptr = memory.c_str();
+    // const auto memory_file_ptr = memory.c_str();
     while (!kill(pid, 0)) {
-        auto fp = fopen(memory_file_ptr, "r");
+        auto fp = fopen(memory.c_str(), "r");
         if (fp) {
             int64_t curr;
             if (fscanf(fp, "%" SCNd64, &curr) > 0) {
                 memory_result = curr;
-                fclose(fp);
             }
+            fclose(fp);
         }
         time_result = get_current_usec() - begin;
         if (time_result >= time_limit * 1000) {
