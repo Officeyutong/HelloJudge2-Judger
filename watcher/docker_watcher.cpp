@@ -52,7 +52,7 @@ python::tuple watch(int pid, int time_limit) {
     int64_t memory_result = -1, time_result = -1;
     const char* memory_file = memory.c_str();
     while (!kill(pid, 0)) {
-        if (memory_result == -1) {
+        {
             auto fp = fopen(memory_file, "r");
             if (!fp) continue;
             int64_t curr;
@@ -62,7 +62,7 @@ python::tuple watch(int pid, int time_limit) {
             }
             fclose(fp);
         }
-        usleep(100);
+        usleep(1000);
         time_result = get_current_usec() - begin;
         if (time_result >= time_limit * 1000) {
             break;
