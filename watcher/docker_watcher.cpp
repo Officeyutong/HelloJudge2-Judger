@@ -10,6 +10,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 using namespace boost;
 using algorithm::split;
 using boost::format;
@@ -57,6 +58,7 @@ python::tuple watch(int pid, int time_limit) {
                 fclose(fp);
             }
         }
+        usleep(100);
         time_result = get_current_usec() - begin;
         if (time_result >= time_limit * 1000) {
             break;
