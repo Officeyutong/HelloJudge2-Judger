@@ -23,7 +23,7 @@ int64_t get_current_usec() {
 };
 python::tuple watch(int pid, int time_limit) {
     std::string memory, cpu;
-    char buf[1024];
+    static char buf[1024];
     sprintf(buf, "/proc/%d/cgroup", pid);
     auto fp = fopen(buf, "r");
     if (!fp) {
@@ -40,30 +40,37 @@ python::tuple watch(int pid, int time_limit) {
                     (format("/sys/fs/cgroup/cpu%s/cpu.stat") % result[2]).str();
             else if (strcmp(result[1].c_str(), "memory"))
                 memory =
-                    (format(
-                         "/sys/fs/cgroup/memory%s/memory.max_usage_in_bytes") %
+                    (format("/sys/fs/cgroup/memory%s/memory.usage_in_bytes") %
                      result[2])
                         .str();
         }
     }
     auto begin = get_current_usec();
-    int64_t memory_result = -1, time_result = -1;
-    time_limit *= 1000;
+    int64_t time_result = -1;
+    // time_limit *= 1000;
     // const auto memory_file_ptr = memory.c_str();
+    int64_t total_memory_cost = 0, memory_cost_count = 0;
     while (!kill(pid, 0)) {
         auto fp = fopen(memory.c_str(), "r");
         if (fp) {
             int64_t curr;
             if (fscanf(fp, "%" SCNd64, &curr) > 0) {
-                memory_result = curr;
+                // memory_result = curr;
+                total_memory_cost += curr, memory_cost_count += 1;
             }
             fclose(fp);
         }
         time_result = get_current_usec() - begin;
-        if (time_result >= time_limit) {
+        if (time_result >= time_limit * 1000) {
             break;
         }
+        usleep(100);
     }
+    int64_t memory_result;
+    if (memory_cost_count == 0)
+        memory_result = 0;
+    else
+        memory_result = total_memory_cost / memory_cost_count;
     if (memory_result == -1) memory_result = 0;
     if (time_result == -1) time_result = 0;
     fclose(fp);
