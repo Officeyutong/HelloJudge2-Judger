@@ -68,6 +68,7 @@ python::tuple watch(int pid, int time_limit) {
             break;
         }
     }
+    cout << "done" << endl;
     if (memory_result == -1) memory_result = 0;
     if (time_result == -1) time_result = 0;
     fclose(fp);
