@@ -59,8 +59,12 @@ python::tuple watch(int pid, int time_limit) {
             cout << "setting memory" << endl;
             if (fscanf(fp, "%" SCNd64, &curr) > 0) {
                 memory_result = curr;
+                cout << "read ok" << endl;
+
                 fclose(fp);
+                cout << "fclose ok" << endl;
             }
+            cout << "set memory ok" << endl;
         }
         usleep(1000);
         time_result = get_current_usec() - begin;
