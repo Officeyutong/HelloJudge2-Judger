@@ -59,7 +59,8 @@ python::tuple watch(int pid, int time_limit) {
                 total_memory_cost += curr, memory_cost_count += 1;
             }
             fclose(fp);
-        }
+        } else
+            break;
         time_result = get_current_usec() - begin;
         if (time_result >= time_limit * 1000) {
             break;
