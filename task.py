@@ -118,7 +118,7 @@ def judge(self: Task, data: dict, judge_config):
         for i, testcase in enumerate(subtask["testcases"]):
             testcase_result = subtask_result["testcases"][i]
             testcase_result["status"] = "judging"
-            update_status(judge_result,f"评测子任务 {subtask['name']} ,测试点{i+1}中")
+            update_status(judge_result, f"评测子任务 {subtask['name']} ,测试点{i+1}中")
             if skip:
                 # 取min时跳过余下的所有测试点
                 testcase_result["score"] = 0

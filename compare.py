@@ -105,4 +105,4 @@ class SimpleComparator:
             a, b = val
             if a.strip() != b.strip():
                 return CompareResult(0, f"Different at line {index}")
-        return CompareResult(full_score, "Ok!")
+        return CompareResult(full_score, "OK!")
