@@ -160,8 +160,13 @@ def judge(self: Task, data: dict, judge_config):
                 testcase_result["message"] += f"退出代码: {result.exit_code}"
             else:
                 try:
-                    with open(os.path.join(opt_dir, output_file), "r") as f:
-                        user_output = f.read()
+                    if os.path.getsize(os.path.join(opt_dir, output_file)) > judge_config["output_file_size_limit"]:
+                        testcase_result["status"] = "output_size_limit_exceed"
+                        testcase_result["message"] = "Too MANY output!"
+                        continue
+                    else:
+                        with open(os.path.join(opt_dir, output_file), "r") as f:
+                            user_output = f.read()
                 except:
                     user_output = ""
                 # 测试点满分，对于sum，为子任务得分除测试点个数，对于min，为1(为了适配)
