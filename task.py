@@ -277,6 +277,6 @@ def ide_run(self, lang_id: str, run_id: str, code: str, input: str, run_config: 
     with open(work_dir/output_file, "r") as f:
         output = f.read(run_config["result_length_limit"])
     update_status(
-        f"运行完成！\n退出代码:{run_result.exit_code}\n内存开销:{run_result.memory_cost} bytes\n时间开销:{run_result.time_cost} ms\n输出:\n"+output, "done")
+        f"运行完成！\n退出代码:{run_result.exit_code}\n内存开销:{run_result.memory_cost} bytes\n时间开销:{run_result.time_cost} ms\n标准输出:\n{output}\n标准错误:\n{run_result.output}", "done")
     print("Done")
     shutil.rmtree(work_dir)
