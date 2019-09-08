@@ -7,10 +7,35 @@ from compare import *
 import tempfile
 import importlib
 from runner import *
+from typing import Callable
 import shutil
+# from celery.utils.log import get_task_logger
 
+# logger = get_task_logger(__name__)
 import sys
 sys.path.append(basedir)
+
+
+def sync_problem_files(problem_id, update: Callable[[str], None]):
+    file_list: list = decode_json(http_post(urljoin(config.WEB_URL, "/api/judge/get_file_list"), {
+        "uuid": config.JUDGER_UUID, "problem_id": problem_id}).decode())["data"]
+    # 同步题目文件
+    update("同步题目文件中")
+    # 题目文件目录
+    path = os.path.join(config.DATA_DIR, str(problem_id))
+    os.makedirs(path, exist_ok=True)
+    for file in file_list:
+        current_file = os.path.join(path, file["name"])
+        # 不存在 或者时间早于更新时间
+        if not os.path.exists(current_file+".lock") or float(read_file(current_file+".lock")) < float(file["last_modified_time"]):
+            update(f"下载 {file['name']} 中..")
+            print(f"Downloading {file}")
+            with open(current_file, "wb") as target:
+                target.write(http_post(urljoin(config.WEB_URL, "/api/judge/download_file"), {
+                    "problem_id": problem_id, "filename": file["name"], "uuid": config.JUDGER_UUID}))
+            with open(current_file+".lock", "w") as f:
+                import time
+                f.write(f"{time.time()}")
 
 
 @app.task(bind=True)
@@ -27,31 +52,12 @@ def judge(self: Task, data: dict, judge_config):
     print(f"Got a judge task {data}")
     problem_data: dict = decode_json(http_post(
         urljoin(config.WEB_URL, "/api/judge/get_problem_info"), {"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).decode())["data"]
-
-    # 同步题目文件
-    update_status(data["judge_result"], "同步题目文件中...")
-    file_list = decode_json(http_post(urljoin(config.WEB_URL, "/api/judge/get_file_list"), {
-                            "uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).decode())["data"]
     # 题目文件目录
     path = os.path.join(config.DATA_DIR, str(data["problem_id"]))
-    os.makedirs(path, exist_ok=True)
-    if judge_config["auto_sync_files"]:
-        for file in file_list:
-            current_file = os.path.join(path, file["name"])
-            # 不存在 或者时间早于更新时间
-            if not os.path.exists(current_file+".lock") or float(read_file(current_file+".lock")) < float(file["last_modified_time"]):
-                update_status(data["judge_result"], f"下载 {file['name']} 中..")
-                print(f"Downloading {file}")
-                with open(current_file, "wb") as target:
-                    target.write(http_post(urljoin(config.WEB_URL, "/api/judge/download_file"), {
-                        "problem_id": data["problem_id"], "filename": file["name"], "uuid": config.JUDGER_UUID}))
-                with open(current_file+".lock", "w") as f:
-                    import time
-                    f.write(f"{time.time()}")
-        update_status(data["judge_result"], "文件同步完成")
-    else:
-        update_status(data["judge_result"], "文件同步跳过")
     # print(problem_data)
+    if judge_config["auto_sync_files"]:
+        sync_problem_files(
+            data["problem_id"], lambda x: update_status(data["judge_result"], x))
     if problem_data["spj_filename"]:
         spj_lang = problem_data["spj_filename"][4:problem_data["spj_filename"].rindex(
             ".")]
@@ -128,6 +134,7 @@ def judge(self: Task, data: dict, judge_config):
             # 程序的输入和输出文件名，trick：使用重定向实现非文件IO
             input_file = problem_data["input_file_name"] if problem_data["using_file_io"] else "in"
             output_file = problem_data["output_file_name"] if problem_data["using_file_io"] else "out"
+            print(input_file,output_file)
             shutil.copy(os.path.join(
                 path, testcase["input"]), os.path.join(opt_dir, input_file))
             # print(
@@ -167,7 +174,7 @@ def judge(self: Task, data: dict, judge_config):
                     else:
                         with open(os.path.join(opt_dir, output_file), "r") as f:
                             user_output = f.read()
-                except:
+                except Exception as ex:
                     user_output = ""
                 # 测试点满分，对于sum，为子任务得分除测试点个数，对于min，为1(为了适配)
                 full_score = testcase["full_score"]
