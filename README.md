@@ -22,6 +22,24 @@ HelloJudge2评测机
 
 这个过程需要保证网络畅通。
 
+国内用户若网络不稳定或构建过程中速度较慢可修改```./docker/DockerFile```
+
+将
+
+```
+# RUN sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+# RUN sed -i 's/security.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+```
+
+改为
+
+```
+RUN sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+RUN sed -i 's/security.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+```
+
+
+
 构建完成后请记录下镜像ID
 ##### 构建watcher
 评测端使用一个由C++编写的Python扩展来监控程序的运行时间。
