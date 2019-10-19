@@ -54,7 +54,7 @@ def judge(self: Task, data: dict, judge_config):
         urljoin(config.WEB_URL, "/api/judge/get_problem_info"), {"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).decode())["data"]
     # 题目文件目录
     path = os.path.join(config.DATA_DIR, str(data["problem_id"]))
-    # print(problem_data)
+    print(problem_data)
     if judge_config["auto_sync_files"]:
         sync_problem_files(
             data["problem_id"], lambda x: update_status(data["judge_result"], x))
@@ -249,7 +249,7 @@ def ide_run(self, lang_id: str, run_id: str, code: str, input: str, run_config: 
     with open(work_dir/app_source_file, "w") as file:
         file.write(code)
     compile_runner = DockerRunner(config.DOCKER_IMAGE, work_dir.absolute(), lang.COMPILE.format(
-        source=app_source_file, output=app_output_file, extra=""), 512*1024*1024, run_config["compile_time_limit"], "Compile", docker_client)
+        source=app_source_file, output=app_output_file, extra=run_config["parameter"]), 512*1024*1024, run_config["compile_time_limit"], "Compile", docker_client)
     print("Compile with "+lang.COMPILE.format(
         source=app_source_file, output=app_output_file, extra=""))
     compile_result: RunnerResult = compile_runner.run()
