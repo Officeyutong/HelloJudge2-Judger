@@ -1,3 +1,4 @@
+from typing import Iterable
 from collections import namedtuple
 import tempfile
 import shutil
@@ -28,7 +29,7 @@ class SPJComparator:
         updator("编译SPJ中..")
         self.updator = updator
         self.work_dir = tempfile.mkdtemp()
-        self.word_dir_path = pathlib.PurePath(self.work_dir)
+        self.work_dir_path = pathlib.PurePath(self.work_dir)
         self.lang = lang
         self.run_time_limit = run_time_limit
         self.image = image
@@ -44,20 +45,19 @@ class SPJComparator:
             3000,
             "SPJ"
         )
+        print(f"SPJ working directory: {self.work_dir_path}")
         result = runner.run()
         if not os.path.exists(os.path.join(self.work_dir, lang.OUTPUT_FILE.format(filename="spj"))) or result.exit_code != 0:
             raise RuntimeError(
                 f"SPJ编译失败: {result.output}\nExit code:{result.exit_code}")
 
-    def compare(self, user_data, std_data, full_score) -> CompareResult:
-        with open(self.word_dir_path/"user_out", "w") as user_out:
-            for line in user_data:
-                user_out.write(line+"\n")
-        with open(self.word_dir_path/"answer", "w") as answer:
-            for line in std_data:
-                answer.write(line+"\n")
-        with open(self.word_dir_path/"full_score", "w") as f:
-            f.write(str(full_score))
+    def compare(self, user_out: Iterable[str], answer: Iterable[str], input_data: Iterable[str], full_score: int) -> CompareResult:
+        with open(self.work_dir_path/"user_out", "w") as _user_out:
+            _user_out.writelines(user_out)
+        with open(self.work_dir_path/"answer", "w") as _answer:
+            _answer.writelines(answer)
+        with open(self.work_dir_path/"input", "w") as _input_data:
+            _input_data.writelines(input_data)
         self.updator("运行SPJ中..")
         runner = DockerRunner(
             self.image,
@@ -70,38 +70,39 @@ class SPJComparator:
         )
         result: RunnerResult = runner.run()
         if result.exit_code != 0:
-            return CompareResult(-1, f"SPJ exit with a code{result.exit_code}")
+            return CompareResult(-1, f"SPJ exited with code: {result.exit_code}")
         import os
-        if not os.path.exists(self.word_dir_path/"score"):
+        if not os.path.exists(self.work_dir_path/"score"):
             return CompareResult(-1, "SPJ didn't provide a valid score file.")
-        with open(self.word_dir_path/"score", "r") as f:
+        with open(self.work_dir_path/"score", "r") as f:
             score = int(f.readline().strip())
         message = "SPJ told you nothing but a score"
-        if os.path.exists(self.word_dir_path/"message"):
-            with open(self.word_dir_path/"message", "r") as f:
+        if os.path.exists(self.work_dir_path/"message"):
+            with open(self.work_dir_path/"message", "r") as f:
                 message = f.readline()
         if score < 0 or score > 100:
-            return CompareResult(-1, f"SPJ output an unrecognizable score: {score}")
+            return CompareResult(-1, f"SPJ outputed an unrecognizable score: {score}")
         return CompareResult(int(score/100*full_score+0.5), message)
 
     def __del__(self):
         shutil.rmtree(self.work_dir)
+        pass
 
 
 class SimpleComparator:
     def __init__(self):
         pass
 
-    def compare(self, user_data, std_data, full_score) -> CompareResult:
-        while user_data and not user_data[-1].strip():
-            user_data.pop()
-        while std_data and not std_data[-1].strip():
-            std_data.pop()
+    def compare(self, user_out: Iterable[str], answer: Iterable[str], input_data: Iterable[str], full_score: int) -> CompareResult:
+        while user_out and not user_out[-1].strip():
+            user_out.pop()
+        while answer and not answer[-1].strip():
+            answer.pop()
 
-        # print(user_data,std_data)
-        if len(user_data) != len(std_data):
-            return CompareResult(0, f"Different line count: {len(user_data)} and {len(std_data)}.")
-        for index, val in enumerate(zip(user_data, std_data)):
+        # print(user_out,answer)
+        if len(user_out) != len(answer):
+            return CompareResult(0, f"Different line count: {len(user_out)} and {len(answer)}.")
+        for index, val in enumerate(zip(user_out, answer)):
             a, b = val
             if a.strip() != b.strip():
                 return CompareResult(0, f"Different at line {index}")

@@ -52,6 +52,7 @@ def judge(self: Task, data: dict, judge_config):
     print(f"Got a judge task {data}")
     problem_data: dict = decode_json(http_post(
         urljoin(config.WEB_URL, "/api/judge/get_problem_info"), {"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).decode())["data"]
+
     # 题目文件目录
     path = os.path.join(config.DATA_DIR, str(data["problem_id"]))
     print(problem_data)
@@ -139,7 +140,8 @@ def judge(self: Task, data: dict, judge_config):
                 path, testcase["input"]), os.path.join(opt_dir, input_file))
             # print(
             #     f'Copy {os.path.join(path, testcase["input"])} to {os.path.join(opt_dir, problem_data["input_file_name"])}')
-
+            with open(os.path.join(path, testcase["input"]), "r") as _input:
+                input_lines = _input.readlines()
             runner = DockerRunner(
                 config.DOCKER_IMAGE,
                 opt_dir,
@@ -182,7 +184,7 @@ def judge(self: Task, data: dict, judge_config):
                 with open(os.path.join(
                         path, testcase["output"]), "r") as file:
                     score, message = comparator.compare(
-                        user_output.split("\n"), file.readlines(), full_score)
+                        user_output.split("\n"), file.readlines(), input_lines, full_score)
 
                 # 非满分一律判为WA
                 if score < full_score:
