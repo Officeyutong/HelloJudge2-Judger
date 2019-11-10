@@ -54,6 +54,8 @@ class DockerRunner:
         output = self.container.logs().decode()
         attr = self.container.attrs.copy()
         self.container.remove()
+        if attr["State"]["OOMKilled"]:
+            memory_cost = attr["HostConfig"]["Memory"]
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
     def __str__(self):
