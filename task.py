@@ -98,7 +98,7 @@ def judge(self: Task, data: dict, judge_config):
     with open(os.path.join(opt_dir, app_source_file), "w") as file:
         file.write(data["code"])
     compile_runner = DockerRunner(config.DOCKER_IMAGE, opt_dir, lang.COMPILE.format(
-        source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]), 512*1024*1024, judge_config["compile_time_limit"], "Compile", docker_client)
+        source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]), 512*1024*1024, judge_config["compile_time_limit"], "Compile", 512*1024*1024,docker_client)
     print("Compile with "+lang.COMPILE.format(
         source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]))
     # 编译时提供给程序的文件
@@ -150,6 +150,7 @@ def judge(self: Task, data: dict, judge_config):
                 f"{subtask['memory_limit']}m",
                 int(int(subtask["time_limit"])),
                 "Judge",
+                int(subtask["memory_limit"])*1024*1024,
                 docker_client
             )
             # 运行用户程序
@@ -251,7 +252,7 @@ def ide_run(self, lang_id: str, run_id: str, code: str, input: str, run_config: 
     with open(work_dir/app_source_file, "w") as file:
         file.write(code)
     compile_runner = DockerRunner(config.DOCKER_IMAGE, work_dir.absolute(), lang.COMPILE.format(
-        source=app_source_file, output=app_output_file, extra=run_config["parameter"]), 512*1024*1024, run_config["compile_time_limit"], "Compile", docker_client)
+        source=app_source_file, output=app_output_file, extra=run_config["parameter"]), 512*1024*1024, run_config["compile_time_limit"], "Compile", 512*1024*1024, docker_client)
     print("Compile with "+lang.COMPILE.format(
         source=app_source_file, output=app_output_file, extra=""))
     compile_result: RunnerResult = compile_runner.run()

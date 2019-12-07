@@ -21,7 +21,7 @@ class DockerRunner:
     client: 所使用的docker客户端
     """
 
-    def __init__(self, image_name: str, mount_dir: str, command, memory_limit, time_limit, task_name, client=docker.from_env()):
+    def __init__(self, image_name: str, mount_dir: str, command, memory_limit, time_limit, task_name, memory_limit_in_bytes, client=docker.from_env()):
         self.image_name = image_name
         self.mount_dir = mount_dir
         self.command = command
@@ -29,6 +29,7 @@ class DockerRunner:
         self.client = client
         self.task_name = task_name
         self.memory_limit = memory_limit
+        self.memory_limit_in_bytes = memory_limit_in_bytes
 
     # @pysnooper.snoop()
     def run(self) -> RunnerResult:
@@ -55,7 +56,13 @@ class DockerRunner:
         attr = self.container.attrs.copy()
         self.container.remove()
         if attr["State"]["OOMKilled"]:
-            memory_cost = attr["HostConfig"]["Memory"]
+            memory_cost = int(attr["HostConfig"]["Memory"])
+        elif memory_cost > self.memory_limit_in_bytes and not attr["State"]["OOMKilled"]:
+            memory_cost = 0
+
+        # import json
+        # print(json.JSONEncoder().encode(attr))
+        # if time_cost>self.memo
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
     def __str__(self):
