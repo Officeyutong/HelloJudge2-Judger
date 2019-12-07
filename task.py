@@ -274,6 +274,7 @@ def ide_run(self, lang_id: str, run_id: str, code: str, input: str, run_config: 
         int(run_config["memory_limit"])*1024*1024,
         int(run_config["time_limit"]),
         "Run",
+        int(run_config["memory_limit"])*1024*1024,
         docker_client
     )
     run_result = runner.run()
