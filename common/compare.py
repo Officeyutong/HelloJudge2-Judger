@@ -3,7 +3,7 @@ from collections import namedtuple
 import tempfile
 import shutil
 import os
-from runner import *
+from common.runner import DockerRunner, RunnerResult
 import pathlib
 CompareResult = namedtuple("CompareResult", ("score", "message"))
 
@@ -43,7 +43,8 @@ class SPJComparator:
                 filename="spj"), output=lang.OUTPUT_FILE.format(filename="spj"), extra=""),
             512*1024*1024,
             3000,
-            "SPJ"
+            "SPJ",
+            memory_limit_in_bytes=512*1024*1024
         )
         print(f"SPJ working directory: {self.work_dir_path}")
         result = runner.run()
@@ -66,7 +67,8 @@ class SPJComparator:
                 program=self.lang.OUTPUT_FILE.format(filename="spj"), redirect=""),
             512*1024*1024,
             3000,
-            "SPJ"
+            "SPJ",
+            memory_limit_in_bytes=512*1024*1024
         )
         result: RunnerResult = runner.run()
         if result.exit_code != 0:

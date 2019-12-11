@@ -1,9 +1,10 @@
 import docker
-from utils import *
+# from common.utils import 
 from collections import namedtuple
 import os
 from datetime import *
 import time
+import docker
 RunnerResult = namedtuple(
     "RunnerResult", "output exit_code time_cost memory_cost")
 
@@ -65,8 +66,8 @@ class DockerRunner:
         # if time_cost>self.memo
         return RunnerResult(output, attr["State"]["ExitCode"], time_cost, memory_cost)
 
-    def __str__(self):
-        return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
+    # def __str__(self):
+    #     return f"<DockerRunner image_name='{self.image_name}' mount_dir='{self.mount_dir}' commands='{self.commands}'>"
 
     def __repr__(self):
         return str(self)

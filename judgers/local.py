@@ -1,24 +1,23 @@
-from main import app, config, basedir, docker_client
-from utils import *
-from urllib.parse import urljoin
-from celery.app.task import Task
-import os
-from compare import *
+from common.utils import decode_json, encode_json, read_file
+from common.compare import SimpleComparator, SPJComparator
+from common.runner import DockerRunner, RunnerResult
+from main import config, app, basedir, docker_client
+from typing import Callable
+
 import tempfile
 import importlib
-from runner import *
-from typing import Callable
+
+from celery.app.task import Task
+import requests
+from urllib.parse import urljoin
+from requests import Session
+import os
 import shutil
-# from celery.utils.log import get_task_logger
-
-# logger = get_task_logger(__name__)
-import sys
-sys.path.append(basedir)
 
 
-def sync_problem_files(problem_id, update: Callable[[str], None]):
-    file_list: list = decode_json(http_post(urljoin(config.WEB_URL, "/api/judge/get_file_list"), {
-        "uuid": config.JUDGER_UUID, "problem_id": problem_id}).decode())["data"]
+def sync_problem_files(problem_id, update: Callable[[str], None], http_client: Session):
+    file_list: list = http_client.post(urljoin(config.WEB_URL, "/api/judge/get_file_list"), data={
+        "uuid": config.JUDGER_UUID, "problem_id": problem_id}).json()["data"]
     # 同步题目文件
     update("同步题目文件中")
     # 题目文件目录
@@ -31,41 +30,43 @@ def sync_problem_files(problem_id, update: Callable[[str], None]):
             update(f"下载 {file['name']} 中..")
             print(f"Downloading {file}")
             with open(current_file, "wb") as target:
-                target.write(http_post(urljoin(config.WEB_URL, "/api/judge/download_file"), {
-                    "problem_id": problem_id, "filename": file["name"], "uuid": config.JUDGER_UUID}))
+                target.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/download_file"), data={
+                    "problem_id": problem_id, "filename": file["name"], "uuid": config.JUDGER_UUID}).content)
             with open(current_file+".lock", "w") as f:
                 import time
                 f.write(f"{time.time()}")
 
 
 @app.task(bind=True)
-def judge(self: Task, data: dict, judge_config):
+def run(self: Task, data: dict, judge_config):
+    http_client = requests.session()
     # 更新评测状态
+
     def update_status(judge_result, message, extra_status=""):
-        http_post(urljoin(config.WEB_URL, "/api/judge/update"), data={
-                  "uuid": config.JUDGER_UUID, "judge_result": encode_json(judge_result), "submission_id": data["id"], "message": message, "extra_status": extra_status})
+        http_client.post(urljoin(config.WEB_URL, "/api/judge/update"), data={
+            "uuid": config.JUDGER_UUID, "judge_result": encode_json(judge_result), "submission_id": data["id"], "message": message, "extra_status": extra_status})
     # 抛出异常时调用
 
     def on_failure(exc, task_id, args, kwargs, einfo):
         update_status({}, f"{exc}: {einfo}")
     self.on_failure = on_failure
     print(f"Got a judge task {data}")
-    problem_data: dict = decode_json(http_post(
-        urljoin(config.WEB_URL, "/api/judge/get_problem_info"), {"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).decode())["data"]
+    problem_data: dict = http_client.post(
+        urljoin(config.WEB_URL, "/api/judge/get_problem_info"), data={"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).json()["data"]
 
     # 题目文件目录
     path = os.path.join(config.DATA_DIR, str(data["problem_id"]))
     print(problem_data)
     if judge_config["auto_sync_files"]:
         sync_problem_files(
-            data["problem_id"], lambda x: update_status(data["judge_result"], x))
+            data["problem_id"], lambda x: update_status(data["judge_result"], x), http_client)
     if problem_data["spj_filename"]:
         spj_lang = problem_data["spj_filename"][4:problem_data["spj_filename"].rindex(
             ".")]
         update_status(data["judge_result"], "下载SPJ语言配置中")
         os.makedirs(os.path.join(basedir, "langs"), exist_ok=True)
         with open(os.path.join("langs", spj_lang+".py"), "wb") as file:
-            file.write(http_post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), {
+            file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), data={
                 "lang_id": spj_lang, "uuid": config.JUDGER_UUID}))
         comparator = SPJComparator(os.path.join(
             path,
@@ -82,8 +83,8 @@ def judge(self: Task, data: dict, judge_config):
     update_status(data["judge_result"], "下载语言配置中")
     os.makedirs(os.path.join(basedir, "langs"), exist_ok=True)
     with open(os.path.join("langs", data["language"]+".py"), "wb") as file:
-        file.write(http_post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), {
-                             "lang_id": data["language"], "uuid": config.JUDGER_UUID}))
+        file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), data={
+            "lang_id": data["language"], "uuid": config.JUDGER_UUID}).content)
     # 创建临时工作目录，用于挂载到docker内进行评测
     opt_dir = tempfile.mkdtemp()
     print(f"Working directory: {opt_dir}")
@@ -98,7 +99,7 @@ def judge(self: Task, data: dict, judge_config):
     with open(os.path.join(opt_dir, app_source_file), "w") as file:
         file.write(data["code"])
     compile_runner = DockerRunner(config.DOCKER_IMAGE, opt_dir, lang.COMPILE.format(
-        source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]), 512*1024*1024, judge_config["compile_time_limit"], "Compile", 512*1024*1024,docker_client)
+        source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]), 512*1024*1024, judge_config["compile_time_limit"], "Compile", 512*1024*1024, docker_client)
     print("Compile with "+lang.COMPILE.format(
         source=app_source_file, output=app_output_file, extra=judge_config["extra_compile_parameter"]))
     # 编译时提供给程序的文件
@@ -219,68 +220,3 @@ def judge(self: Task, data: dict, judge_config):
     print("Removing files..")
     shutil.rmtree(opt_dir)
     print("Ok")
-
-
-@app.task(bind=True)
-def ide_run(self, lang_id: str, run_id: str, code: str, input: str, run_config: dict):
-    def update_status(msg, status):
-        http_post(urljoin(config.WEB_URL, "/api/ide/update"), {
-            "uuid": config.JUDGER_UUID, "message": msg, "run_id": run_id, "status": status
-        })
-
-    def on_failure(exc, task_id, args, kwargs, einfo):
-        update_status(f"{exc}: {einfo}", "running")
-    self.on_failure = on_failure
-    import tempfile
-    import pathlib
-    work_dir = pathlib.Path(tempfile.mkdtemp())
-    print("Working dir: "+str(work_dir))
-    basedir = pathlib.Path(".")
-    # 下载语言定义
-    update_status("下载语言配置中", "running")
-    os.makedirs(basedir/"langs", exist_ok=True)
-    with open(os.path.join("langs", lang_id+".py"), "wb") as file:
-        file.write(http_post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), {
-                             "lang_id": lang_id, "uuid": config.JUDGER_UUID}))
-    lang = importlib.import_module(f"langs.{lang_id}")
-    # 编译程序
-    update_status("编译程序中", "running")
-    # 用户程序源文件名
-    app_source_file = lang.SOURCE_FILE.format(filename="run")
-    # 用户程序目标文件名
-    app_output_file = lang.OUTPUT_FILE.format(filename="run")
-    with open(work_dir/app_source_file, "w") as file:
-        file.write(code)
-    compile_runner = DockerRunner(config.DOCKER_IMAGE, work_dir.absolute(), lang.COMPILE.format(
-        source=app_source_file, output=app_output_file, extra=run_config["parameter"]), 512*1024*1024, run_config["compile_time_limit"], "Compile", 512*1024*1024, docker_client)
-    print("Compile with "+lang.COMPILE.format(
-        source=app_source_file, output=app_output_file, extra=""))
-    compile_result: RunnerResult = compile_runner.run()
-    print(f"Compile result = {compile_result}")
-    if compile_result.exit_code:
-        update_status(
-            f"编译失败！\n{compile_result.output}\n时间开销:{compile_result.time_cost}ms\n内存开销:{compile_result.memory_cost}Bytes\nExit code:{compile_result.exit_code}", "done")
-        return
-    input_file = "in"
-    output_file = "out"
-    with open(work_dir/input_file, "w") as f:
-        f.write(input)
-    update_status("运行中...", "running")
-    runner = DockerRunner(
-        config.DOCKER_IMAGE,
-        work_dir.absolute(),
-        lang.RUN.format(program=app_output_file, redirect=(
-            f"< {input_file} > {output_file}")),
-        int(run_config["memory_limit"])*1024*1024,
-        int(run_config["time_limit"]),
-        "Run",
-        int(run_config["memory_limit"])*1024*1024,
-        docker_client
-    )
-    run_result = runner.run()
-    with open(work_dir/output_file, "r") as f:
-        output = f.read(run_config["result_length_limit"])
-    update_status(
-        f"运行完成！\n退出代码:{run_result.exit_code}\n内存开销:{run_result.memory_cost} bytes\n时间开销:{run_result.time_cost} ms\n标准输出:\n{output}\n标准错误:\n{run_result.output}", "done")
-    print("Done")
-    shutil.rmtree(work_dir)
