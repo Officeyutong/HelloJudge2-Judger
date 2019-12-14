@@ -56,7 +56,7 @@ class LuoguJudgeClient(JudgeClient):
     @staticmethod
     def login(session: LuoguSessionData, username: str, password: str, captcha: str = None) -> LoginResult:
         if not captcha:
-            return LoginResult(ok=False, message="请输入验证码", require_captcha=True)
+            return LoginResult(ok=False, message="请输入验证码", require_captcha=True, captcha=LuoguJudgeClient.get_login_captcha(session))
         client = requests.session()
         regx = re.compile("""<meta name="csrf-token" content="(.*)">""")
         csrf_token = regx.search(client.get(
@@ -95,7 +95,11 @@ class LuoguJudgeClient(JudgeClient):
                            )
         json_data = resp.json()
         if json_data["status"] != 200:
-            return SubmitResult(ok=False, message=json_data["data"], require_captcha="请过3分钟再尝试" in json_data["data"], require_login="没有登录" in json_data["data"])
+            return SubmitResult(ok=False,
+                                message=json_data["data"],
+                                require_captcha="请过3分钟再尝试" in json_data["data"],
+                                require_login="没有登录" in json_data["data"],
+                                captcha=LuoguJudgeClient.get_submit_captcha(session) if ("请过3分钟再尝试" in json_data["data"]) else None)
 
         return SubmitResult(ok=True, message="提交成功!", require_captcha=False, submit_id=str(json_data["data"]["rid"]))
 
@@ -156,15 +160,16 @@ class LuoguJudgeClient(JudgeClient):
         luogu_status: Dict[str, str] = ast.literal_eval(content)
         # print(status)
         result = {
-            "subtasks": [], "memory_cost": 0, "time_cost": 0
+            "subtasks": {}, "message": "", "extra_status": ""
         }
-        for subtask in luogu_status["subtasks"]:
-            result["subtasks"].append({
-                "memory_cost": subtask["memory"]*1024, "time_cost": subtask["time"], "status": hj2_status[subtask["status"]], "score": subtask["score"], "testcases": []
-            })
-            result["memory_cost"] = max(
-                result["memory_cost"], subtask["memory"]*1024)
-            result["time_cost"] += subtask["time"]
+        if luogu_status["compile"]["flag"] != 12:
+            result["message"] = luogu_status["compile"]["content"]
+            result["extra_status"] = "compile_error"
+            return result
+        for i, subtask in enumerate(luogu_status["subtasks"]):
+            result["subtasks"][f"Subtask{i+1}"] = {
+                "status": hj2_status[subtask["status"]], "score": subtask["score"], "testcases": []
+            }
         cases: List[Tuple[int, Dict[str, str]]] = []
         for key, value in luogu_status.items():
             if key.startswith("case"):
@@ -172,15 +177,19 @@ class LuoguJudgeClient(JudgeClient):
         cases.sort(key=lambda x: x[0])
         for _, testcase in cases:
             current = {
-                "message": testcase["desc"], "memory_cost": testcase["memory"]*1024, "time_cost": testcase["time"], "score": testcase["score"], "status": hj2_status[testcase["flag"]]
+                "message": testcase["desc"],
+                "memory_cost": testcase["memory"]*1024,
+                "time_cost": testcase["time"],
+                "score": testcase["score"],
+                "status": hj2_status[testcase["flag"]],
+                "input": "NotAvailable",
+                "output": "NotAvailable"
             }
-            result["subtasks"][testcase["subtask"]
-                               ]["testcases"].append(current)
-        # print(result)
+            result["subtasks"][f"Subtask{testcase['subtask']+1}"]["testcases"].append(
+                current)
         return result
 
-
-def get_judge_client()->JudgeClient:
+def get_judge_client() -> JudgeClient:
     return LuoguJudgeClient
 
 

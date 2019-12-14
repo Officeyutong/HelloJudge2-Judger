@@ -7,6 +7,12 @@ class LoginResult:
     message: str
     new_session: Any = None
     require_captcha: bool = None
+    captcha: bytes = None
+
+    def as_dict(self) -> dict:
+        return {
+            "ok": self.ok, "message": self.message, "new_session": self.new_session.as_dict(), "require_captcha": self.require_captcha
+        }
 
 
 @dataclass
@@ -16,7 +22,12 @@ class SubmitResult:
     require_captcha: bool = None
     submit_id: str = None
     require_login: bool = None
-    # new_session: LuoguSessionData = None
+    captcha: bytes = None
+
+    def as_dict(self) -> dict:
+        return {"submit_id": self.submit_id,
+                "ok": self.ok, "message": self.message, "require_login": self.require_login, "require_captcha": self.require_captcha
+                }
 
 
 class JudgeClient:
