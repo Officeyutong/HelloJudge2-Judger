@@ -2,3 +2,4 @@ celery
 docker
 redis
 requests
+bs4

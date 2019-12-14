@@ -13,4 +13,13 @@ sys.path.append(basedir)
 # from test.qwq import client as docker_client
 import docker
 docker_client = docker.from_env()
-import judgers.local , judgers.ide_run
+if config.ENABLE_IDE_RUN:
+    import judgers.ide_run
+if config.ENABLE_LOCAL_JUDGE:
+    import judgers.local
+if config.ENABLE_REMOTE_JUDGE:
+    import judgers.remote
+
+JUDGE_CLIENTS={
+    "luogu" : judgers.remote_runners.luogu
+}
