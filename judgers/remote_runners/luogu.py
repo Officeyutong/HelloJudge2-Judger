@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from common import LoginResult, SubmitResult, JudgeClient
+from .common import LoginResult, SubmitResult, JudgeClient
 import requests
 import re
 
@@ -116,7 +116,9 @@ class LuoguJudgeClient(JudgeClient):
         import ast
         from pprint import pprint as print
         from typing import Dict, Tuple, List
-        resp = requests.get("https://www.luogu.com.cn/recordnew/show/"+submission_id,
+        from urllib.parse import unquote
+        from json import JSONDecoder
+        resp = requests.get("https://www.luogu.com.cn/record/"+submission_id,
                             headers=LuoguJudgeClient.headers, cookies=session.as_dict())
         """
     var flagMap = {
@@ -152,42 +154,81 @@ class LuoguJudgeClient(JudgeClient):
         }
         soup = BeautifulSoup(resp.text, "lxml")
         for item in soup.select("script"):
-            if "var showScore = true;" in item.text:
-                script = item.text
-                break
-        regexpr = re.compile(r"""renderData\(\{(.*)\}.*\)""")
-        content = "{"+regexpr.search(script).groups()[0]+"}"
-        luogu_status: Dict[str, str] = ast.literal_eval(content)
+            script = item.text
+            break
+        regexpr = re.compile(
+            r"""JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)""")
+        # print(regexpr.search(script).groups()[0])
+        content = unquote(regexpr.search(script).groups()[0])
+        # print(content)
+        luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
+            "currentData"]["record"]
         # print(status)
+        print(luogu_status)
         result = {
             "subtasks": {}, "message": "", "extra_status": ""
         }
-        if luogu_status["compile"]["flag"] != 12:
-            result["message"] = luogu_status["compile"]["content"]
-            result["extra_status"] = "compile_error"
+        result["extra_status"] = hj2_status[luogu_status["status"]]
+        if luogu_status["status"] in {0}:
             return result
-        for i, subtask in enumerate(luogu_status["subtasks"]):
-            result["subtasks"][f"Subtask{i+1}"] = {
-                "status": hj2_status[subtask["status"]], "score": subtask["score"], "testcases": []
+        if not luogu_status["detail"]["compile"]["success"]:
+            result["message"] = luogu_status["detail"]["compile"]["content"]
+            return result
+        for i, subtask in enumerate(luogu_status["detail"]["subtasks"]):
+            testcases = []
+            result["subtasks"]["Subtask{}".format(subtask["id"]+1)] = {
+                "score": subtask["score"],
+                "status": hj2_status[subtask["status"]],
+                "testcases": testcases
             }
-        cases: List[Tuple[int, Dict[str, str]]] = []
-        for key, value in luogu_status.items():
-            if key.startswith("case"):
-                cases.append((int(key[4:]), value))
-        cases.sort(key=lambda x: x[0])
-        for _, testcase in cases:
-            current = {
-                "message": testcase["desc"],
-                "memory_cost": testcase["memory"]*1024,
-                "time_cost": testcase["time"],
-                "score": testcase["score"],
-                "status": hj2_status[testcase["flag"]],
-                "input": "NotAvailable",
-                "output": "NotAvailable"
-            }
-            result["subtasks"][f"Subtask{testcase['subtask']+1}"]["testcases"].append(
-                current)
+            for testcase in subtask["testcases"]:
+                current = luogu_status["detail"]["testcases"][str(testcase)]
+                testcases.append({
+                    "memory_cost": current["memory"]*1024,
+                    "time_cost": current["time"],
+                    "status": hj2_status[current["status"]],
+                    "input": "NotAvailable",
+                    "output": "NotAvailable",
+                    "message": current["message"],
+                    "score": current["score"],
+                    "full_score": 100//len(luogu_status["detail"]["testcases"])
+                })
         return result
+
+    @staticmethod
+    def fetch_problem(problem_id: str) -> dict:
+        resp = requests.get(
+            "https://www.luogu.com.cn/problem/"+str(problem_id), headers=LuoguJudgeClient.headers)
+        from bs4 import BeautifulSoup
+        import re
+        import ast
+        from pprint import pprint as print
+        from typing import Dict, Tuple, List
+        from urllib.parse import unquote
+        import json
+        soup = BeautifulSoup(resp.text, "lxml")
+        for elem in soup.select("script"):
+            if "window._feInjection" in elem.text:
+                regexp = re.compile(
+                    r"JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)")
+                text = regexp.search(elem.text).groups()[0]
+                problem_data = json.JSONDecoder().decode(unquote(
+                    text))["currentData"]["problem"]
+        result = {
+            "title": "[洛谷 {}]".format(problem_data["pid"])+" "+problem_data["title"],
+            "background": problem_data["background"],
+            "content": problem_data["description"],
+            "hint": problem_data["hint"],
+            "inputFormat": problem_data["inputFormat"],
+            "outputFormat": problem_data["outputFormat"],
+            "timeLimit": problem_data["limits"]["time"][0],
+            "memoryLimit": problem_data["limits"]["memory"][0],
+            "remoteProblemID": problem_data["pid"],
+            "remoteOJ": "luogu",
+            "examples": [{"input": val[0], "output":val[1]} for val in problem_data["samples"]]
+        }
+        return result
+
 
 def get_judge_client() -> JudgeClient:
     return LuoguJudgeClient

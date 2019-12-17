@@ -12,17 +12,20 @@ import requests
 
 @app.task(bind=True)
 def submit(self: Task,
-           hj2_submission_id: str,
-           oj_type: str,
-           session: Dict[str, str],
-           problem_id: str,
-           lang: str,
-           code: str,
-           login_captcha: str,
-           submit_captcha: str,
-           client_session_id: str,
-           remote_username: str,
-           remote_password: str,
+           oj_type: str,  # 远程OJ
+           session: Dict[str, str],  # Session字典
+           remote_account_id: str,  # 远程账户ID
+           problem_id: str,  # 远程题目ID
+           lang: str,  # 远程语言ID
+           code: str,  # 代码
+           login_captcha: str,  # 登录验证码
+           submit_captcha: str,  # 提交验证码
+           client_session_id: str,  # 客户端sid
+           remote_username: str,  # 远程OJ用户名
+           remote_password: str,  # 远程OJ密码
+           hj2_problem_id: int,  # hj2问题ID
+           uid: int,  # 提交用户ID
+           public: bool,  # 是否公开提交
            countdown: int
            ):
     """
@@ -32,11 +35,12 @@ def submit(self: Task,
         若提交需要验证码则通知客户端并终止提交
 
     """
-    client = requests.session()
+    print("Submitting: ", locals())
+    http_client = requests.session()
 
-    def update_status(ok, data: dict):
-        client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update"),
-                    json={"ok": ok, "data": data, "uuid": config.JUDGER_UUID, "client_session_id": client_session_id})
+    def update_status(ok, data: dict, new_session="{}"):
+        http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_submit_status"),
+                         json={"ok": ok, "data": data, "uuid": config.JUDGER_UUID, "client_session_id": client_session_id})
     # 抛出异常时调用
 
     def on_failure(exc, task_id, args, kwargs, einfo):
@@ -45,6 +49,10 @@ def submit(self: Task,
     module = JUDGE_CLIENTS[oj_type]
     client: JudgeClient = module.get_judge_client()
     session_object = module.as_session_data(session)
+    if not session_object or not session_object.client_id:
+        session_object = client.create_session()
+    print(http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_session"),
+                           json={"account_id": remote_account_id, "uuid": config.JUDGER_UUID, "session": session_object.as_dict()}).text)
     if not client.has_login(session_object):
         # 尝试登录
         login_result = client.login(
@@ -53,6 +61,9 @@ def submit(self: Task,
             update_status(False, login_result.as_dict())
             return
         session_object = login_result.new_session
+    print(http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_session"),
+                           json={"account_id": remote_account_id, "uuid": config.JUDGER_UUID, "session": session_object.as_dict()}).text)
+    print("Login ok. ", session_object)
     # 已登录,尝试提交
     submit_result: SubmitResult = client.submit(
         session_object, problem_id, code, lang, submit_captcha
@@ -60,12 +71,47 @@ def submit(self: Task,
     if not submit_result.ok:
         update_status(False, submit_result.as_dict())
         return
-    # 提交成功
-    update_status(True, submit_result.as_dict())
+    update_result = http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/create_submission"), json={
+        "uuid": config.JUDGER_UUID,
+        "client_session_id": client_session_id,
+        "code": code,
+        "language": lang,
+        "uid": uid,
+        "hj2_problem_id": hj2_problem_id,
+        "public": public,
+        "message": submit_result.message
+    }).json()
+    print("Submit result: ", submit_result.as_dict())
     # 开始跟踪
     app.send_task("judgers.remote.track_submission", [
-        oj_type, session, submit_result.submit_id, hj2_submission_id,  countdown
+        oj_type, session, submit_result.submit_id, update_result["data"]["submission_id"],  countdown
     ])
+
+
+@app.task(bind=True)
+def fetch_problem(self: Task,
+                  oj_type: str,
+                  remote_problem_id: str,
+                  hj2_problem_id: str,
+                  client_session_id: str
+                  ):
+    http_client = requests.session()
+
+    # 抛出异常时调用
+
+    def on_failure(exc, task_id, args, kwargs, einfo):
+        http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_fetch"), json={
+            "uuid": config.JUDGER_UUID, "ok": False, "message": f"{exc}: {einfo}", "hj2_problem_id": hj2_problem_id, "client_session_id": client_session_id
+        })
+    print("Fetching...", oj_type, remote_problem_id,
+          hj2_problem_id, client_session_id)
+    self.on_failure = on_failure
+    module = JUDGE_CLIENTS[oj_type]
+    client: JudgeClient = module.get_judge_client()
+    result = client.fetch_problem(remote_problem_id)
+    http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_fetch"), json={
+        "uuid": config.JUDGER_UUID, "ok": True, "result": result, "hj2_problem_id": hj2_problem_id, "client_session_id": client_session_id
+    })
 
 
 @app.task(bind=True)
@@ -76,27 +122,29 @@ def track_submission(self: Task,
                      hj2_submission_id: str,
                      countdown: int
                      ):
+    print("Tracking : ", locals())
     if countdown == 0:
         return
-    client = requests.session()
+    http_client = requests.session()
 
     def update_status(judge_result, message, extra_status=""):
-        client.post(urljoin(config.WEB_URL, "/api/judge/update"), data={
+        http_client.post(urljoin(config.WEB_URL, "/api/judge/update"), data={
             "uuid": config.JUDGER_UUID, "judge_result": encode_json(judge_result), "submission_id": hj2_submission_id, "message": message, "extra_status": extra_status})
 
     # 抛出异常时调用
 
     def on_failure(exc, task_id, args, kwargs, einfo):
-        update_status(False, {"message": f"{exc}: {einfo}"})
+        update_status({}, f"{exc}: {einfo}", "unaccepted")
     self.on_failure = on_failure
     module = JUDGE_CLIENTS[oj_type]
     client: JudgeClient = module.get_judge_client()
     session_object = module.as_session_data(session)
     result: dict = client.get_submission_status(
         session_object, remote_submission_id)
+    print("Track result: ", result)
     update_status(result["subtasks"], result["message"],
-                  result["extra_message"])
-    time.sleep(1)
+                  result["extra_status"])
+    time.sleep(3)
     app.send_task("judgers.remote.track_submission", [
         oj_type, session, remote_submission_id, hj2_submission_id,  countdown-1
     ])

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 from abc import abstractstaticmethod
+import base64
 @dataclass
 class LoginResult:
     ok: bool
@@ -11,7 +12,11 @@ class LoginResult:
 
     def as_dict(self) -> dict:
         return {
-            "ok": self.ok, "message": self.message, "new_session": self.new_session.as_dict(), "require_captcha": self.require_captcha
+            "ok": self.ok,
+            "message": self.message,
+            "new_session": self.new_session.as_dict() if self.new_session else None,
+            "require_login_captcha": self.require_captcha,
+            "captcha": base64.encodebytes(self.captcha).decode() if self.captcha else None
         }
 
 
@@ -25,9 +30,14 @@ class SubmitResult:
     captcha: bytes = None
 
     def as_dict(self) -> dict:
-        return {"submit_id": self.submit_id,
-                "ok": self.ok, "message": self.message, "require_login": self.require_login, "require_captcha": self.require_captcha
-                }
+        return {
+            "submit_id": self.submit_id,
+            "ok": self.ok,
+            "message": self.message,
+            "require_login": self.require_login,
+            "require_submit_captcha": self.require_captcha,
+            "captcha": base64.encodebytes(self.captcha).decode() if self.captcha else None
+        }
 
 
 class JudgeClient:
@@ -61,4 +71,8 @@ class JudgeClient:
 
     @abstractstaticmethod
     def get_submission_status(session, submission_id: str) -> dict:
+        pass
+
+    @abstractstaticmethod
+    def fetch_problem(problem_id):
         pass
