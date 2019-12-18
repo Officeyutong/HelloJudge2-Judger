@@ -46,7 +46,8 @@ class LuoguJudgeClient(JudgeClient):
     @staticmethod
     def get_login_captcha(session: LuoguSessionData) -> bytes:
         client = requests.session()
-        return client.get("https://www.luogu.com.cn/api/verify/captcha?_t=1575787808359.9067", headers=LuoguJudgeClient.headers, cookies=session.as_dict()).content
+        import random
+        return client.get("https://www.luogu.com.cn/api/verify/captcha?_t={}".format(random.random()), headers=LuoguJudgeClient.headers, cookies=session.as_dict()).content
 
     @staticmethod
     def get_submit_captcha(session: LuoguSessionData) -> bytes:
@@ -77,8 +78,21 @@ class LuoguJudgeClient(JudgeClient):
         }
         resp = client.post("https://www.luogu.com.cn/api/auth/userPassLogin",
                            headers=headers, json=data, cookies=session.as_dict())
+        print("Login with captcha: ", captcha)
+        print("Login response: ", resp.json())
         if not resp.ok:
-            return LoginResult(False, resp.json()["data"], None)
+            resp_data = resp.json()["data"]
+            print(resp_data)
+            captcha_data = LuoguJudgeClient.get_login_captcha(session)
+            with open("qwq.png", "wb") as f:
+                f.write(captcha_data)
+            return LoginResult(
+                False,
+                resp_data,
+                None,
+                require_captcha="验证码错误" in resp_data,
+                captcha=captcha_data if ("验证码错误" in resp_data) else None
+            )
         return LoginResult(True, "登录成功", new_session=LuoguSessionData(session.client_id, resp.cookies["_uid"]))
 
     @staticmethod
@@ -99,7 +113,9 @@ class LuoguJudgeClient(JudgeClient):
                                 message=json_data["data"],
                                 require_captcha="请过3分钟再尝试" in json_data["data"],
                                 require_login="没有登录" in json_data["data"],
-                                captcha=LuoguJudgeClient.get_submit_captcha(session) if ("请过3分钟再尝试" in json_data["data"]) else None)
+                                captcha=LuoguJudgeClient.get_submit_captcha(session) if (
+                                    "请过3分钟再尝试" in json_data["data"]) else None
+                                )
 
         return SubmitResult(ok=True, message="提交成功!", require_captcha=False, submit_id=str(json_data["data"]["rid"]))
 
@@ -160,11 +176,16 @@ class LuoguJudgeClient(JudgeClient):
             r"""JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)""")
         # print(regexpr.search(script).groups()[0])
         content = unquote(regexpr.search(script).groups()[0])
-        # print(content)
-        luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
-            "currentData"]["record"]
+        print(JSONDecoder().decode(content))
+        try:
+            luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
+                "currentData"]["record"]
+        except Exception as ex:
+            return {
+                "subtasks": {}, "message": "", "extra_status": "waiting"
+            }
         # print(status)
-        print(luogu_status)
+        # print(luogu_status)
         result = {
             "subtasks": {}, "message": "", "extra_status": ""
         }

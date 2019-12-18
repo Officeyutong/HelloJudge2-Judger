@@ -49,15 +49,17 @@ def submit(self: Task,
     module = JUDGE_CLIENTS[oj_type]
     client: JudgeClient = module.get_judge_client()
     session_object = module.as_session_data(session)
-    if not session_object or not session_object.client_id:
-        session_object = client.create_session()
-    print(http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_session"),
-                           json={"account_id": remote_account_id, "uuid": config.JUDGER_UUID, "session": session_object.as_dict()}).text)
     if not client.has_login(session_object):
+
         # 尝试登录
-        login_result = client.login(
+        login_result: LoginResult = client.login(
             session_object, remote_username, remote_password, login_captcha)
         if not login_result.ok:
+            # 登录失败时直接开一个client_id
+            session_object = client.create_session()
+            http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_session"),
+                             json={"account_id": remote_account_id, "uuid": config.JUDGER_UUID, "session": session_object.as_dict()})
+            login_result.captcha = client.get_login_captcha(session_object)
             update_status(False, login_result.as_dict())
             return
         session_object = login_result.new_session
@@ -123,8 +125,6 @@ def track_submission(self: Task,
                      countdown: int
                      ):
     print("Tracking : ", locals())
-    if countdown == 0:
-        return
     http_client = requests.session()
 
     def update_status(judge_result, message, extra_status=""):
@@ -142,9 +142,18 @@ def track_submission(self: Task,
     result: dict = client.get_submission_status(
         session_object, remote_submission_id)
     print("Track result: ", result)
-    update_status(result["subtasks"], result["message"],
+    # message=result["message"]+"\n\n远程提交ID: {}".format(remote_submission_id)
+    update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n剩余追踪次数:".format(remote_submission_id, countdown),
                   result["extra_status"])
-    time.sleep(3)
-    app.send_task("judgers.remote.track_submission", [
-        oj_type, session, remote_submission_id, hj2_submission_id,  countdown-1
-    ])
+    if result["extra_status"] not in {"waiting", "judging"}:
+        update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n评测完成.".format(remote_submission_id),
+                      result["extra_status"])
+        return
+    if countdown > 0:
+        time.sleep(3)
+        app.send_task("judgers.remote.track_submission", [
+            oj_type, session, remote_submission_id, hj2_submission_id,  countdown-1
+        ])
+    else:
+        update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n已超过追踪时限,请重新提交.".format(remote_submission_id),
+                      result["extra_status"])
