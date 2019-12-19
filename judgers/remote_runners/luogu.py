@@ -181,6 +181,7 @@ class LuoguJudgeClient(JudgeClient):
         try:
             luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
                 "currentData"]["record"]
+            print(luogu_status)
         except Exception as ex:
             import traceback
             traceback.print_exc()
