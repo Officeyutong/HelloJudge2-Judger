@@ -108,6 +108,7 @@ class LuoguJudgeClient(JudgeClient):
                                     problem_id, **LuoguJudgeClient.headers}
                            )
         json_data = resp.json()
+        print("Luogu response: ", json_data)
         if json_data["status"] != 200:
             return SubmitResult(ok=False,
                                 message=json_data["data"],

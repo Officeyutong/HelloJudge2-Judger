@@ -70,6 +70,7 @@ def submit(self: Task,
     submit_result: SubmitResult = client.submit(
         session_object, problem_id, code, lang, submit_captcha
     )
+    print("Submie result: ", submit_result)
     if not submit_result.ok:
         update_status(False, submit_result.as_dict())
         return
@@ -86,7 +87,8 @@ def submit(self: Task,
     print("Submit result: ", submit_result.as_dict())
     # 开始跟踪
     app.send_task("judgers.remote.track_submission", [
-        oj_type, session, submit_result.submit_id, update_result["data"]["submission_id"],  countdowns
+        oj_type, session, submit_result.submit_id, update_result[
+            "data"]["submission_id"],  countdowns
     ])
 
 
