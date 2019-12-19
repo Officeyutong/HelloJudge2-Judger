@@ -3,3 +3,4 @@ docker
 redis
 requests
 bs4
+lxml
