@@ -182,6 +182,8 @@ class LuoguJudgeClient(JudgeClient):
             luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
                 "currentData"]["record"]
         except Exception as ex:
+            import traceback
+            traceback.print_exc()
             return {
                 "subtasks": {}, "message": "", "extra_status": "waiting"
             }
