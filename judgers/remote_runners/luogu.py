@@ -176,7 +176,7 @@ class LuoguJudgeClient(JudgeClient):
             r"""JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)""")
         # print(regexpr.search(script).groups()[0])
         content = unquote(regexpr.search(script).groups()[0])
-        print(JSONDecoder().decode(content))
+        # print(JSONDecoder().decode(content))
         try:
             luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
                 "currentData"]["record"]

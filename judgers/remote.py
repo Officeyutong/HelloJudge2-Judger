@@ -26,7 +26,7 @@ def submit(self: Task,
            hj2_problem_id: int,  # hj2问题ID
            uid: int,  # 提交用户ID
            public: bool,  # 是否公开提交
-           countdown: int
+           countdowns: list  # 倒计时时间列表
            ):
     """
         Web端尝试提交代码，先用预存的cookies试图提交
@@ -86,7 +86,7 @@ def submit(self: Task,
     print("Submit result: ", submit_result.as_dict())
     # 开始跟踪
     app.send_task("judgers.remote.track_submission", [
-        oj_type, session, submit_result.submit_id, update_result["data"]["submission_id"],  countdown
+        oj_type, session, submit_result.submit_id, update_result["data"]["submission_id"],  countdowns
     ])
 
 
@@ -122,7 +122,7 @@ def track_submission(self: Task,
                      session: Dict[str, str],
                      remote_submission_id: str,
                      hj2_submission_id: str,
-                     countdown: int
+                     countdowns: list
                      ):
     print("Tracking : ", locals())
     http_client = requests.session()
@@ -143,16 +143,17 @@ def track_submission(self: Task,
         session_object, remote_submission_id)
     print("Track result: ", result)
     # message=result["message"]+"\n\n远程提交ID: {}".format(remote_submission_id)
-    update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n剩余追踪次数:".format(remote_submission_id, countdown),
+    update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n剩余追踪次数:{}".format(remote_submission_id, countdowns),
                   result["extra_status"])
     if result["extra_status"] not in {"waiting", "judging"}:
         update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n评测完成.".format(remote_submission_id),
                       result["extra_status"])
         return
-    if countdown > 0:
-        time.sleep(3)
+    if countdowns:
+        last = countdowns.pop()
+        time.sleep(last)
         app.send_task("judgers.remote.track_submission", [
-            oj_type, session, remote_submission_id, hj2_submission_id,  countdown-1
+            oj_type, session, remote_submission_id, hj2_submission_id,  countdowns
         ])
     else:
         update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n已超过追踪时限,请重新提交.".format(remote_submission_id),
