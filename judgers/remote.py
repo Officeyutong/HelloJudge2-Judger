@@ -49,7 +49,7 @@ def submit(self: Task,
     module = JUDGE_CLIENTS[oj_type]
     client: JudgeClient = module.get_judge_client()
     session_object = module.as_session_data(session)
-    if not client.has_login(session_object):
+    if not client.check_login_status(session_object):
 
         # 尝试登录
         login_result: LoginResult = client.login(

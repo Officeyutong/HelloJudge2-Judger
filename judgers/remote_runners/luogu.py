@@ -27,7 +27,7 @@ class LuoguJudgeClient(JudgeClient):
         "x-requested-with": "XMLHttpRequest"
     }
     @staticmethod
-    def has_login(session: LuoguSessionData) -> bool:
+    def check_login_status(session: LuoguSessionData) -> bool:
         client = requests.session()
         resp = client.get("https://www.luogu.com.cn/record/list",
                           headers=LuoguJudgeClient.headers, cookies=session.as_dict(), allow_redirects=False)

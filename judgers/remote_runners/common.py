@@ -42,7 +42,7 @@ class SubmitResult:
 
 class JudgeClient:
     @abstractstaticmethod
-    def has_login(session) -> bool:
+    def check_login_status(session) -> bool:
         pass
 
     @abstractstaticmethod
