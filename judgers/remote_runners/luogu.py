@@ -134,7 +134,7 @@ class LuoguJudgeClient(JudgeClient):
         from pprint import pprint as print
         from typing import Dict, Tuple, List
         from urllib.parse import unquote
-        from json import JSONDecoder
+        from json import JSONDecoder,JSONEncoder
         resp = requests.get("https://www.luogu.com.cn/record/"+submission_id,
                             headers=LuoguJudgeClient.headers, cookies=session.as_dict())
         """
@@ -181,7 +181,7 @@ class LuoguJudgeClient(JudgeClient):
         try:
             luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
                 "currentData"]["record"]
-            print(luogu_status)
+            print(JSONEncoder().encode(luogu_status))
         except Exception as ex:
             import traceback
             traceback.print_exc()

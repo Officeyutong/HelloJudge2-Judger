@@ -49,6 +49,8 @@ RUN sed -i 's/security.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
 对于Ubuntu，可以使用```apt install libboost1.65-all-dev```进行安装。
 
 然后在```./watcher```目录下运行```compile.sh```即可。
+##### 其他
+如果不想在同一台评测机实例上同时进行本地评测和远程评测，那么请务必保证本地评测与远程评测不使用同一个消息队列。
 ##### 运行
 执行```celery -A main worker```即可。
 
@@ -64,6 +66,11 @@ Web端访问的URL
 此评测机的UUID
 ##### DOCKER_IMAGE
 构建的Docker镜像名
+##### ENABLE_LOCAL_JUDGE
+在本评测机实例上启用本地评测.
+##### ENABLE_IDE_RUN 
+在本评测机实例上启用在线IDE评测.
+
 #### 其他
 评测数据会在收到评测请求时通过校对时间戳的方式与Web端进行同步。
 

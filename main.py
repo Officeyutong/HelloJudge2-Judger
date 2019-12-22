@@ -11,9 +11,11 @@ basedir = os.path.dirname(__file__)
 import sys
 sys.path.append(basedir)
 sys.path.append(basedir+"/judgers")
-import judgers.remote_runners
+import judgers.remote_runners.luogu
+import judgers.remote_runners.vjudge
 JUDGE_CLIENTS = {
-    "luogu" : judgers.remote_runners.luogu
+    "luogu" : judgers.remote_runners.luogu,
+    "vjudge":judgers.remote_runners.vjudge
 }
 
 # from test.qwq import client as docker_client

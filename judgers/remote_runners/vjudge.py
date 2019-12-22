@@ -58,7 +58,7 @@ class VJudgeJudgeClient(JudgeClient):
         raise NotImplementedError("VJudge不需要使用此功能")
 
     @staticmethod
-    def logout(session: VJudgeJudgeClient):
+    def logout(session: VJudgeSessionData):
         resp = requests.post("https://vjudge.net/user/logout",
                              headers=VJudgeJudgeClient.headers, cookies=session.as_dict())
         return resp.ok
