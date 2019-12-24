@@ -8,4 +8,4 @@ RUN apt-get install curl build-essential m4 zlib1g-dev libssl-dev ocaml ocaml-na
 RUN apt install rustc -y
 RUN apt install git
 RUN git clone https://github.com/samshadwell/TrumpScript.git /root/TrumpScript
-RUN sh -c "export PATH=$PATH:/root/TrumpScript/bin"
+RUN sh -c "echo \"export PATH=$PATH:/root/TrumpScript/bin\" >> /root/.bashrc"
