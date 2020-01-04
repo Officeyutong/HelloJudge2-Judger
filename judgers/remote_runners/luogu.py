@@ -100,25 +100,25 @@ class LuoguJudgeClient(JudgeClient):
         client = requests.session()
         csrf_token = re.compile("""<meta name="csrf-token" content="(.*)">""").search(client.get(
             "https://www.luogu.com.cn/auth/login", headers=LuoguJudgeClient.headers, cookies=session.as_dict()).text).groups()[0]
-        resp = client.post("https://www.luogu.com.cn/api/problem/submit/"+problem_id,
-                           data={
-                               "verify": captcha, "enableO2": "", "lang": language, "code": code},
+        resp = client.post("https://www.luogu.com.cn/fe/api/problem/submit/"+problem_id,
+                           json={
+                               "verify": captcha, "enableO2": 0, "lang": int(language), "code": code},
                            cookies=session.as_dict(),
                            headers={"x-csrf-token": csrf_token, "referer": "https://www.luogu.com.cn/problem/" +
                                     problem_id, **LuoguJudgeClient.headers}
                            )
         json_data = resp.json()
         print("Luogu response: ", json_data)
-        if json_data["status"] != 200:
+        if not resp.ok:
             return SubmitResult(ok=False,
-                                message=json_data["data"],
-                                require_captcha="请过3分钟再尝试" in json_data["data"],
-                                require_login="没有登录" in json_data["data"],
+                                message=json_data["errorMessage"],
+                                require_captcha="请过3分钟再尝试" in json_data["errorMessage"],
+                                require_login="没有登录" in json_data["errorMessage"],
                                 captcha=LuoguJudgeClient.get_submit_captcha(session) if (
-                                    "请过3分钟再尝试" in json_data["data"]) else None
+                                    "请过3分钟再尝试" in json_data["errorMessage"]) else None
                                 )
 
-        return SubmitResult(ok=True, message="提交成功!", require_captcha=False, submit_id=str(json_data["data"]["rid"]))
+        return SubmitResult(ok=True, message="提交成功!", require_captcha=False, submit_id=str(json_data["rid"]))
 
     @staticmethod
     def logout(session: LuoguSessionData):
@@ -134,7 +134,7 @@ class LuoguJudgeClient(JudgeClient):
         from pprint import pprint as print
         from typing import Dict, Tuple, List
         from urllib.parse import unquote
-        from json import JSONDecoder,JSONEncoder
+        from json import JSONDecoder, JSONEncoder
         resp = requests.get("https://www.luogu.com.cn/record/"+submission_id,
                             headers=LuoguJudgeClient.headers, cookies=session.as_dict())
         """
@@ -180,7 +180,7 @@ class LuoguJudgeClient(JudgeClient):
         # print(JSONDecoder().decode(content))
         try:
             luogu_status: Dict[str, str] = JSONDecoder().decode(content)[
-                "currentData"]["record"]
+                "currentData"]
             print(JSONEncoder().encode(luogu_status))
         except Exception as ex:
             import traceback
@@ -193,31 +193,45 @@ class LuoguJudgeClient(JudgeClient):
         result = {
             "subtasks": {}, "message": "", "extra_status": ""
         }
-        result["extra_status"] = hj2_status[luogu_status["status"]]
-        if luogu_status["status"] in {0}:
+        result["extra_status"] = hj2_status[luogu_status["record"]
+                                            ["status"]]
+        if luogu_status["record"]["status"] in {0}:
             return result
-        if not luogu_status["detail"]["compile"]["success"]:
-            result["message"] = luogu_status["detail"]["compile"]["content"]
+        if not luogu_status["record"]["detail"]["compileResult"]["success"]:
+            result["message"] = luogu_status["record"]["detail"]["compileResult"]["message"]
             return result
-        for i, subtask in enumerate(luogu_status["detail"]["subtasks"]):
+        subtask_count = sum((len(x) for x in luogu_status["testCaseGroup"]))
+        for i, subtask in enumerate(luogu_status["record"]["detail"]["judgeResult"]["subtasks"]):
             testcases = []
-            result["subtasks"]["Subtask{}".format(subtask["id"]+1)] = {
-                "score": subtask["score"],
-                "status": hj2_status[subtask["status"]],
+            current_subtask = {
+                "score": 0,
+                "status": "waiting",
                 "testcases": testcases
             }
-            for testcase in subtask["testcases"]:
-                current = luogu_status["detail"]["testcases"][str(testcase)]
+            all_ok = True
+            has_any_waiting_or_judging = False
+            for idx, current in subtask["testCases"].items():
                 testcases.append({
                     "memory_cost": current["memory"]*1024,
                     "time_cost": current["time"],
                     "status": hj2_status[current["status"]],
                     "input": "NotAvailable",
                     "output": "NotAvailable",
-                    "message": current["message"],
+                    "description": current["description"],
                     "score": current["score"],
-                    "full_score": 100//len(luogu_status["detail"]["testcases"])
+                    "full_score": 100//subtask_count
                 })
+                current_subtask["score"] += current["score"]
+                all_ok = all_ok and (current["status"] == 12)
+            if all_ok:
+                current_subtask["status"] = "accepted"
+            elif has_any_waiting_or_judging:
+                current_subtask["status"] = "waiting"
+            else:
+                current_subtask["status"] = "unaccepted"
+            result["subtasks"]["Subtask{}".format(
+                subtask["id"]+1)] = current_subtask
+
         return result
 
     @staticmethod
