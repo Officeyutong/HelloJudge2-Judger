@@ -193,6 +193,10 @@ class LuoguJudgeClient(JudgeClient):
         result = {
             "subtasks": {}, "message": "", "extra_status": ""
         }
+        if "record" not in luogu_status:
+            return {
+                "subtasks": {}, "message": "", "extra_status": "waiting"
+            }
         result["extra_status"] = hj2_status[luogu_status["record"]
                                             ["status"]]
         if luogu_status["record"]["status"] in {0}:
