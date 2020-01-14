@@ -87,7 +87,7 @@ def submit(self: Task,
     print("Submit result: ", submit_result.as_dict())
     # 开始跟踪
     app.send_task("judgers.remote.track_submission", [
-        oj_type, session, submit_result.submit_id, update_result[
+        oj_type, session_object.as_dict(), submit_result.submit_id, update_result[
             "data"]["submission_id"],  countdowns
     ])
 

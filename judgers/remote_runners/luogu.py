@@ -93,6 +93,7 @@ class LuoguJudgeClient(JudgeClient):
                 require_captcha="验证码错误" in resp_data,
                 captcha=captcha_data if ("验证码错误" in resp_data) else None
             )
+        print("Response cookies", dict(resp.cookies))
         return LoginResult(True, "登录成功", new_session=LuoguSessionData(session.client_id, resp.cookies["_uid"]))
 
     @staticmethod
