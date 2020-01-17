@@ -26,7 +26,9 @@ def submit(self: Task,
            hj2_problem_id: int,  # hj2问题ID
            uid: int,  # 提交用户ID
            public: bool,  # 是否公开提交
-           countdowns: list  # 倒计时时间列表
+           countdowns: list,  # 倒计时时间列表,
+           contest_id: int,  # 比赛ID
+           contest_problem_id: int  # 比赛题目ID
            ):
     """
         Web端尝试提交代码，先用预存的cookies试图提交
@@ -82,7 +84,9 @@ def submit(self: Task,
         "uid": uid,
         "hj2_problem_id": hj2_problem_id,
         "public": public,
-        "message": submit_result.message
+        "message": submit_result.message,
+        "contest_id": contest_id,
+        "contest_problem_id": contest_problem_id
     }).json()
     print("Submit result: ", submit_result.as_dict())
     # 开始跟踪
