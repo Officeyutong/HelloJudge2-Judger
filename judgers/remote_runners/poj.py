@@ -70,7 +70,7 @@ class POJJudgeClient(JudgeClient):
             str((soup.find(text="Case Time Limit:").parent.next_sibling)).replace("MS", "").strip()) if soup.find(text="Case Time Limit:") else None
         return json.JSONDecoder().decode(
             jsonpickle.dumps(ProblemFetchResult(
-                title=soup.select_one(".ptt").text,
+                title=f"[POJ{problem_id}]"+soup.select_one(".ptt").text,
                 background=(
                     f"数据点时间限制: {case_time_limit}ms" if case_time_limit else ""),
                 content="".join(
