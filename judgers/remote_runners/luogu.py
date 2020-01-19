@@ -249,6 +249,8 @@ class LuoguJudgeClient(JudgeClient):
         from pprint import pprint as print
         from typing import Dict, Tuple, List
         from urllib.parse import unquote
+        from datatypes.problem_fetch import ProblemExampleCase, ProblemFetchResult
+        import jsonpickle
         import json
         soup = BeautifulSoup(resp.text, "lxml")
         for elem in soup.select("script"):
@@ -258,20 +260,39 @@ class LuoguJudgeClient(JudgeClient):
                 text = regexp.search(elem.text).groups()[0]
                 problem_data = json.JSONDecoder().decode(unquote(
                     text))["currentData"]["problem"]
-        result = {
-            "title": "[洛谷 {}]".format(problem_data["pid"])+" "+problem_data["title"],
-            "background": problem_data["background"],
-            "content": problem_data["description"],
-            "hint": problem_data["hint"],
-            "inputFormat": problem_data["inputFormat"],
-            "outputFormat": problem_data["outputFormat"],
-            "timeLimit": problem_data["limits"]["time"][0],
-            "memoryLimit": problem_data["limits"]["memory"][0],
-            "remoteProblemID": problem_data["pid"],
-            "remoteOJ": "luogu",
-            "examples": [{"input": val[0], "output":val[1]} for val in problem_data["samples"]]
-        }
-        return result
+        # result = {
+        #     "title": "[洛谷 {}]".format(problem_data["pid"])+" "+problem_data["title"],
+        #     "background": problem_data["background"],
+        #     "content": problem_data["description"],
+        #     "hint": problem_data["hint"],
+        #     "inputFormat": problem_data["inputFormat"],
+        #     "outputFormat": problem_data["outputFormat"],
+        #     "timeLimit": problem_data["limits"]["time"][0],
+        #     "memoryLimit": problem_data["limits"]["memory"][0],
+        #     "remoteProblemID": problem_data["pid"],
+        #     "remoteOJ": "luogu",
+        #     "examples": [{"input": val[0], "output":val[1]} for val in problem_data["samples"]]
+        # }
+        return json.JSONDecoder().decode(
+            jsonpickle.dumps(ProblemFetchResult(
+                title="[洛谷 {}]".format(problem_data["pid"]) +
+                " "+problem_data["title"],
+                background=problem_data["background"],
+                content=problem_data["description"],
+                hint=problem_data["hint"],
+                inputFormat=problem_data["inputFormat"],
+                outputFormat=problem_data["outputFormat"],
+                timeLimit=problem_data["limits"]["time"][0],
+                memoryLimit=problem_data["limits"]["memory"][0],
+                remoteProblemID=problem_data["pid"],
+                remoteOJ="luogu",
+                examples=[
+                    ProblemExampleCase(
+                        input=val[0], output=val[1]
+                    ) for val in problem_data["samples"]
+                ]
+            ), unpicklable=False)
+        )
 
 
 def get_judge_client() -> JudgeClient:

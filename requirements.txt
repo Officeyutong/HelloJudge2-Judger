@@ -4,3 +4,5 @@ redis
 requests
 bs4
 lxml
+jsonpickle
+lxml

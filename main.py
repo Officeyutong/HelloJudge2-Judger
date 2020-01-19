@@ -4,7 +4,7 @@ except Exception:
     import config_default as config
 import celery
 import os
-
+import common
 
 app = celery.Celery("HelloJudge2", broker=config.REDIS_URI)
 basedir = os.path.dirname(__file__)
@@ -13,9 +13,11 @@ sys.path.append(basedir)
 sys.path.append(basedir+"/judgers")
 import judgers.remote_runners.luogu
 import judgers.remote_runners.vjudge
+import judgers.remote_runners.poj
 JUDGE_CLIENTS = {
     "luogu" : judgers.remote_runners.luogu,
-    "vjudge":judgers.remote_runners.vjudge
+    # "vjudge":judgers.remote_runners.vjudge,
+    "poj" : judgers.remote_runners.poj
 }
 
 # from test.qwq import client as docker_client
