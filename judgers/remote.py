@@ -73,6 +73,12 @@ def submit(self: Task,
         session_object, problem_id, code, lang, submit_captcha
     )
     print("Submie result: ", submit_result)
+    if submit_result.require_new_session:
+        session_object = client.create_session()
+        print("new session created.", session_object)
+        print(http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_session"),
+                               json={"account_id": remote_account_id, "uuid": config.JUDGER_UUID, "session": session_object.as_dict()}).text)
+
     if not submit_result.ok:
         update_status(False, submit_result.as_dict())
         return

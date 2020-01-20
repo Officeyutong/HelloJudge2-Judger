@@ -10,6 +10,7 @@ class LoginResult:
     require_captcha: bool = None
     captcha: bytes = None
 
+
     def as_dict(self) -> dict:
         return {
             "ok": self.ok,
@@ -28,7 +29,7 @@ class SubmitResult:
     submit_id: str = None
     require_login: bool = None
     captcha: bytes = None
-
+    require_new_session: bool = False
     def as_dict(self) -> dict:
         return {
             "submit_id": self.submit_id,

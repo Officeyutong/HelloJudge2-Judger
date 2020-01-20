@@ -117,7 +117,7 @@ class POJJudgeClient(JudgeClient):
                 print(urlf.text)
                 if "Error Occurred" in urlf.text:
                     if "Please login first." in urlf.text:
-                        return SubmitResult(ok=False, require_login=True, message="请登录")
+                        return SubmitResult(ok=False, require_login=True, message="请再次提交", require_new_session=True)
                     import re
                     regexpr = re.compile(r"<li>(.*)</li>")
                     if urlf.url != "http://poj.org/status":
