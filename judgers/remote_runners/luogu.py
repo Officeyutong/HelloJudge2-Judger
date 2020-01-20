@@ -215,7 +215,7 @@ class LuoguJudgeClient(JudgeClient):
             }
             all_ok = True
             has_any_waiting_or_judging = False
-            for idx, current in subtask["testCases"].items():
+            for idx, current in (subtask["testCases"].items() if type(subtask["testCases"]) == dict else enumerate(subtask["testCases"])):
                 testcases.append({
                     "memory_cost": current["memory"]*1024,
                     "time_cost": current["time"],
@@ -260,11 +260,13 @@ class LuoguJudgeClient(JudgeClient):
                 text = regexp.search(elem.text).groups()[0]
                 problem_data = json.JSONDecoder().decode(unquote(
                     text))["currentData"]["problem"]
+        print("Problem data: ")
+        print(problem_data)
         return json.JSONDecoder().decode(
             jsonpickle.dumps(ProblemFetchResult(
                 title="[洛谷 {}]".format(problem_data["pid"]) +
                 " "+problem_data["title"],
-                background=problem_data["background"],
+                background=problem_data["background"] or "",
                 content=problem_data["description"] + (
                     "\n\n"+problem_data["translation"] if "translation" in problem_data else ""),
                 hint=problem_data["hint"],
