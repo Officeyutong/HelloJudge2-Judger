@@ -52,7 +52,7 @@ def submit(self: Task,
     client: JudgeClient = module.get_judge_client()
     session_object = module.as_session_data(session)
     if not client.check_login_status(session_object):
-
+        print("Login....")
         # 尝试登录
         login_result: LoginResult = client.login(
             session_object, remote_username, remote_password, login_captcha)

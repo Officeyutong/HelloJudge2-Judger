@@ -14,7 +14,7 @@ class POJSessionData:
     def as_dict(self) -> dict:
         return {
             "JSESSIONID": self.JSESSIONID,
-            "_username": self.username
+            "_username": self.username,
             # "pgv_pvi": self.pgv_pvi,
             # "pgv_si": self.pgv_si
         }
@@ -26,7 +26,7 @@ class POJJudgeClient(JudgeClient):
         print("Checking ", session)
         with requests.get("http://poj.org", cookies=session.as_dict()) as urlf:
             print("result = ", "<td>Password:</td>" not in urlf.text)
-            return "<td>Password:</td>" not in urlf.text
+            return "Password:" not in urlf.text
 
     @staticmethod
     def create_session():
@@ -46,10 +46,15 @@ class POJJudgeClient(JudgeClient):
             "B1": "login",
             "url": "%2F"
         }) as urlf:
+            print(urlf.text)
             if urlf.ok:
                 return LoginResult(
                     True, "登陆成功", POJSessionData(
-                        JSESSIONID=session.JSESSIONID, username=username), False
+                        JSESSIONID=session.JSESSIONID,
+                        username=username,),
+                    # pgv_pvi=urlf.cookies["pgv_pvi"],
+                    # pgv_si=urlf.cookies["pgv_si"])
+                    False
                 )
             else:
                 return LoginResult(False, urlf.text)
@@ -109,7 +114,7 @@ class POJJudgeClient(JudgeClient):
             "encoded": "1"
         }) as urlf:
             if urlf.ok:
-                # print(urlf.text)
+                print(urlf.text)
                 if "Error Occurred" in urlf.text:
                     if "Please login first." in urlf.text:
                         return SubmitResult(ok=False, require_login=True, message="请登录")
@@ -201,7 +206,7 @@ def get_judge_client() -> JudgeClient:
 def as_session_data(data: dict):
     return POJSessionData(
         JSESSIONID=data.get("JSESSIONID", None),
-        username=data.get("_username", None)
-        # pgv_pvi=data["pgv_pvi"],
-        # pgv_si=data["pgv_si"]
+        username=data.get("_username", None),
+        # pgv_pvi=data.get("pgv_pvi", None),
+        # pgv_si=data.get("pgv_si", None)
     )
