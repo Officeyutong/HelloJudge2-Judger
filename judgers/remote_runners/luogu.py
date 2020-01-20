@@ -260,25 +260,13 @@ class LuoguJudgeClient(JudgeClient):
                 text = regexp.search(elem.text).groups()[0]
                 problem_data = json.JSONDecoder().decode(unquote(
                     text))["currentData"]["problem"]
-        # result = {
-        #     "title": "[洛谷 {}]".format(problem_data["pid"])+" "+problem_data["title"],
-        #     "background": problem_data["background"],
-        #     "content": problem_data["description"],
-        #     "hint": problem_data["hint"],
-        #     "inputFormat": problem_data["inputFormat"],
-        #     "outputFormat": problem_data["outputFormat"],
-        #     "timeLimit": problem_data["limits"]["time"][0],
-        #     "memoryLimit": problem_data["limits"]["memory"][0],
-        #     "remoteProblemID": problem_data["pid"],
-        #     "remoteOJ": "luogu",
-        #     "examples": [{"input": val[0], "output":val[1]} for val in problem_data["samples"]]
-        # }
         return json.JSONDecoder().decode(
             jsonpickle.dumps(ProblemFetchResult(
                 title="[洛谷 {}]".format(problem_data["pid"]) +
                 " "+problem_data["title"],
                 background=problem_data["background"],
-                content=problem_data["description"],
+                content=problem_data["description"] + (
+                    "\n\n"+problem_data["translation"] if "translation" in problem_data else ""),
                 hint=problem_data["hint"],
                 inputFormat=problem_data["inputFormat"],
                 outputFormat=problem_data["outputFormat"],
