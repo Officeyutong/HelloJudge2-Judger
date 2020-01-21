@@ -26,42 +26,38 @@ class LuoguJudgeClient(JudgeClient):
         'Accept-Language': 'zh-CN,zh;q=0.9',
         "x-requested-with": "XMLHttpRequest"
     }
-    @staticmethod
-    def check_login_status(session: LuoguSessionData) -> bool:
+
+    def check_login_status(self, session: LuoguSessionData) -> bool:
         client = requests.session()
         resp = client.get("https://www.luogu.com.cn/record/list",
-                          headers=LuoguJudgeClient.headers, cookies=session.as_dict(), allow_redirects=False)
+                          headers=self.headers, cookies=session.as_dict(), allow_redirects=False)
         if resp.status_code == 302 and resp.headers["location"] == "/auth/login":
             return False
         return True
 
-    @staticmethod
-    def create_session() -> LuoguSessionData:
+    def create_session(self) -> LuoguSessionData:
 
         client = requests.session()
         resp = client.get("https://www.luogu.com.cn/auth/login",
-                          headers=LuoguJudgeClient.headers)
+                          headers=self.headers)
         return LuoguSessionData(client_id=resp.cookies["__client_id"], uid=None)
 
-    @staticmethod
-    def get_login_captcha(session: LuoguSessionData) -> bytes:
+    def get_login_captcha(self, session: LuoguSessionData) -> bytes:
         client = requests.session()
         import random
-        return client.get("https://www.luogu.com.cn/api/verify/captcha?_t={}".format(random.random()), headers=LuoguJudgeClient.headers, cookies=session.as_dict()).content
+        return client.get("https://www.luogu.com.cn/api/verify/captcha?_t={}".format(random.random()), headers=self.headers, cookies=session.as_dict()).content
 
-    @staticmethod
-    def get_submit_captcha(session: LuoguSessionData) -> bytes:
+    def get_submit_captcha(self, session: LuoguSessionData) -> bytes:
         client = requests.session()
-        return client.get("https://www.luogu.com.cn/download/captcha", headers=LuoguJudgeClient.headers, cookies=session.as_dict()).content
+        return client.get("https://www.luogu.com.cn/download/captcha", headers=self.headers, cookies=session.as_dict()).content
 
-    @staticmethod
-    def login(session: LuoguSessionData, username: str, password: str, captcha: str = None) -> LoginResult:
+    def login(self, session: LuoguSessionData, username: str, password: str, captcha: str = None) -> LoginResult:
         if not captcha:
-            return LoginResult(ok=False, message="请输入验证码", require_captcha=True, captcha=LuoguJudgeClient.get_login_captcha(session))
+            return LoginResult(ok=False, message="请输入验证码", require_captcha=True, captcha=self.get_login_captcha(session))
         client = requests.session()
         regx = re.compile("""<meta name="csrf-token" content="(.*)">""")
         csrf_token = regx.search(client.get(
-            "https://www.luogu.com.cn/auth/login", headers=LuoguJudgeClient.headers, cookies=session.as_dict()).text).groups()[0]
+            "https://www.luogu.com.cn/auth/login", headers=self.headers, cookies=session.as_dict()).text).groups()[0]
         data = {
             "username": username,
             "password": password,
@@ -83,7 +79,7 @@ class LuoguJudgeClient(JudgeClient):
         if not resp.ok:
             resp_data = resp.json()["data"]
             print(resp_data)
-            captcha_data = LuoguJudgeClient.get_login_captcha(session)
+            captcha_data = self.get_login_captcha(session)
             with open("qwq.png", "wb") as f:
                 f.write(captcha_data)
             return LoginResult(
@@ -96,17 +92,16 @@ class LuoguJudgeClient(JudgeClient):
         print("Response cookies", dict(resp.cookies))
         return LoginResult(True, "登录成功", new_session=LuoguSessionData(session.client_id, resp.cookies["_uid"]))
 
-    @staticmethod
-    def submit(session: LuoguSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
+    def submit(self, session: LuoguSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
         client = requests.session()
         csrf_token = re.compile("""<meta name="csrf-token" content="(.*)">""").search(client.get(
-            "https://www.luogu.com.cn/auth/login", headers=LuoguJudgeClient.headers, cookies=session.as_dict()).text).groups()[0]
+            "https://www.luogu.com.cn/auth/login", headers=self.headers, cookies=session.as_dict()).text).groups()[0]
         resp = client.post("https://www.luogu.com.cn/fe/api/problem/submit/"+problem_id,
                            json={
                                "verify": captcha, "enableO2": 0, "lang": int(language), "code": code},
                            cookies=session.as_dict(),
                            headers={"x-csrf-token": csrf_token, "referer": "https://www.luogu.com.cn/problem/" +
-                                    problem_id, **LuoguJudgeClient.headers}
+                                    problem_id, **self.headers}
                            )
         json_data = resp.json()
         print("Luogu response: ", json_data)
@@ -115,20 +110,18 @@ class LuoguJudgeClient(JudgeClient):
                                 message=json_data["errorMessage"],
                                 require_captcha="请过3分钟再尝试" in json_data["errorMessage"],
                                 require_login="没有登录" in json_data["errorMessage"],
-                                captcha=LuoguJudgeClient.get_submit_captcha(session) if (
+                                captcha=self.get_submit_captcha(session) if (
                                     "请过3分钟再尝试" in json_data["errorMessage"]) else None
                                 )
 
         return SubmitResult(ok=True, message="提交成功!", require_captcha=False, submit_id=str(json_data["rid"]))
 
-    @staticmethod
-    def logout(session: LuoguSessionData):
+    def logout(self, session: LuoguSessionData):
         client = requests.session()
         client.get(
-            "https://www.luogu.com.cn/api/auth/logout", params={"uid": session.uid}, headers=LuoguJudgeClient.headers, cookies=session.as_dict())
+            "https://www.luogu.com.cn/api/auth/logout", params={"uid": session.uid}, headers=self.headers, cookies=session.as_dict())
 
-    @staticmethod
-    def get_submission_status(session: LuoguSessionData, submission_id: str) -> dict:
+    def get_submission_status(self, session: LuoguSessionData, submission_id: str) -> dict:
         from bs4 import BeautifulSoup
         import re
         import ast
@@ -137,7 +130,7 @@ class LuoguJudgeClient(JudgeClient):
         from urllib.parse import unquote
         from json import JSONDecoder, JSONEncoder
         resp = requests.get("https://www.luogu.com.cn/record/"+submission_id,
-                            headers=LuoguJudgeClient.headers, cookies=session.as_dict())
+                            headers=self.headers, cookies=session.as_dict())
         """
     var flagMap = {
         12: "AC",
@@ -239,10 +232,9 @@ class LuoguJudgeClient(JudgeClient):
 
         return result
 
-    @staticmethod
-    def fetch_problem(problem_id: str) -> dict:
+    def fetch_problem(self, problem_id: str) -> dict:
         resp = requests.get(
-            "https://www.luogu.com.cn/problem/"+str(problem_id), headers=LuoguJudgeClient.headers)
+            "https://www.luogu.com.cn/problem/"+str(problem_id), headers=self.headers)
         from bs4 import BeautifulSoup
         import re
         import ast
@@ -284,10 +276,9 @@ class LuoguJudgeClient(JudgeClient):
             ), unpicklable=False)
         )
 
+    def as_session_data(self, data: dict):
+        return LuoguSessionData(client_id=data.get("__client_id", None), uid=data.get("_uid", None))
+
 
 def get_judge_client() -> JudgeClient:
     return LuoguJudgeClient
-
-
-def as_session_data(data: dict):
-    return LuoguSessionData(client_id=data.get("__client_id", None), uid=data.get("_uid", None))

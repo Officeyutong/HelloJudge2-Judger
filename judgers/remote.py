@@ -1,7 +1,7 @@
 from main import app, JUDGE_CLIENTS, config
 from celery.app.task import Task
 from typing import Dict
-from remote_runners.luogu import LuoguJudgeClient
+# from remote_runners.luogu import LuoguJudgeClient
 from remote_runners.common import JudgeClient
 from urllib.parse import urljoin
 from remote_runners.common import LoginResult, SubmitResult
@@ -48,9 +48,9 @@ def submit(self: Task,
     def on_failure(exc, task_id, args, kwargs, einfo):
         update_status(False, {"message": f"{exc}: {einfo}"})
     self.on_failure = on_failure
-    module = JUDGE_CLIENTS[oj_type]
-    client: JudgeClient = module.get_judge_client()
-    session_object = module.as_session_data(session)
+    # module = 
+    client: JudgeClient = JUDGE_CLIENTS[oj_type]
+    session_object = client.as_session_data(session)
     if not client.check_login_status(session_object):
         print("Login....")
         # 尝试登录
@@ -120,8 +120,8 @@ def fetch_problem(self: Task,
     print("Fetching...", oj_type, remote_problem_id,
           hj2_problem_id, client_session_id)
     self.on_failure = on_failure
-    module = JUDGE_CLIENTS[oj_type]
-    client: JudgeClient = module.get_judge_client()
+    # module = 
+    client: JudgeClient = JUDGE_CLIENTS[oj_type]
     result = client.fetch_problem(remote_problem_id)
     http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_fetch"), json={
         "uuid": config.JUDGER_UUID, "ok": True, "result": result, "hj2_problem_id": hj2_problem_id, "client_session_id": client_session_id
@@ -148,9 +148,9 @@ def track_submission(self: Task,
     def on_failure(exc, task_id, args, kwargs, einfo):
         update_status({}, f"{exc}: {einfo}", "unaccepted")
     self.on_failure = on_failure
-    module = JUDGE_CLIENTS[oj_type]
-    client: JudgeClient = module.get_judge_client()
-    session_object = module.as_session_data(session)
+    # module = 
+    client: JudgeClient = JUDGE_CLIENTS[oj_type]
+    session_object = client.as_session_data(session)
     result: dict = client.get_submission_status(
         session_object, remote_submission_id)
     print("Track result: ", result)

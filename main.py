@@ -15,9 +15,9 @@ import judgers.remote_runners.luogu
 import judgers.remote_runners.vjudge
 import judgers.remote_runners.poj
 JUDGE_CLIENTS = {
-    "luogu" : judgers.remote_runners.luogu,
+    "luogu" : judgers.remote_runners.luogu.get_judge_client()(),
     # "vjudge":judgers.remote_runners.vjudge,
-    "poj" : judgers.remote_runners.poj
+    "poj" : judgers.remote_runners.poj.get_judge_client()()
 }
 
 # from test.qwq import client as docker_client

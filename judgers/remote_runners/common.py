@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
-from abc import abstractstaticmethod
+from abc import abstractmethod
 import base64
 @dataclass
 class LoginResult:
@@ -9,7 +9,6 @@ class LoginResult:
     new_session: Any = None
     require_captcha: bool = None
     captcha: bytes = None
-
 
     def as_dict(self) -> dict:
         return {
@@ -30,6 +29,7 @@ class SubmitResult:
     require_login: bool = None
     captcha: bytes = None
     require_new_session: bool = False
+
     def as_dict(self) -> dict:
         return {
             "submit_id": self.submit_id,
@@ -42,38 +42,42 @@ class SubmitResult:
 
 
 class JudgeClient:
-    @abstractstaticmethod
-    def check_login_status(session) -> bool:
+    @abstractmethod
+    def check_login_status(self, session) -> bool:
         pass
 
-    @abstractstaticmethod
-    def create_session():
+    @abstractmethod
+    def create_session(self):
         pass
 
-    @abstractstaticmethod
-    def get_login_captcha(session) -> bytes:
+    @abstractmethod
+    def get_login_captcha(self, session) -> bytes:
         pass
 
-    @abstractstaticmethod
-    def get_submit_captcha(session) -> bytes:
+    @abstractmethod
+    def get_submit_captcha(self, session) -> bytes:
         pass
 
-    @abstractstaticmethod
-    def login(session, username: str, password: str, captcha: str = None) -> LoginResult:
+    @abstractmethod
+    def login(self, session, username: str, password: str, captcha: str = None) -> LoginResult:
         pass
 
-    @abstractstaticmethod
-    def submit(session, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
+    @abstractmethod
+    def submit(self, session, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
         pass
 
-    @abstractstaticmethod
-    def logout(session):
+    @abstractmethod
+    def logout(self, session):
         pass
 
-    @abstractstaticmethod
-    def get_submission_status(session, submission_id: str) -> dict:
+    @abstractmethod
+    def get_submission_status(self, session, submission_id: str) -> dict:
         pass
 
-    @abstractstaticmethod
-    def fetch_problem(problem_id):
+    @abstractmethod
+    def fetch_problem(self, problem_id):
+        pass
+
+    @abstractmethod
+    def as_session_data(self, data):
         pass

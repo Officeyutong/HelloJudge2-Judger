@@ -21,23 +21,20 @@ class POJSessionData:
 
 
 class POJJudgeClient(JudgeClient):
-    @staticmethod
-    def check_login_status(session: POJSessionData) -> bool:
+    def check_login_status(self, session: POJSessionData) -> bool:
         print("Checking ", session)
         with requests.get("http://poj.org", cookies=session.as_dict()) as urlf:
             print("result = ", "<td>Password:</td>" not in urlf.text)
             return "Password:" not in urlf.text
 
-    @staticmethod
-    def create_session():
+    def create_session(self):
         with requests.get("http://poj.org") as urlf:
             return POJSessionData(
                 JSESSIONID=urlf.cookies["JSESSIONID"],
                 # pgv_pvi=urlf.cookies["pgv_pvi"],
             )
 
-    @staticmethod
-    def login(session: POJSessionData, username: str, password: str, captcha: str = None) -> LoginResult:
+    def login(self, session: POJSessionData, username: str, password: str, captcha: str = None) -> LoginResult:
         if not session.JSESSIONID:
             return LoginResult(ok=False, message="请再次点击提交按钮")
         with requests.post("http://poj.org/login", cookies=session.as_dict(), data={
@@ -59,8 +56,7 @@ class POJJudgeClient(JudgeClient):
             else:
                 return LoginResult(False, urlf.text)
 
-    @staticmethod
-    def fetch_problem(problem_id: str) -> dict:
+    def fetch_problem(self, problem_id: str) -> dict:
         import jsonpickle
         from datatypes.problem_fetch import ProblemFetchResult, ProblemExampleCase
         from bs4 import BeautifulSoup
@@ -101,8 +97,7 @@ class POJJudgeClient(JudgeClient):
             ), unpicklable=False)
         )
 
-    @staticmethod
-    def submit(session: POJSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
+    def submit(self, session: POJSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
         import base64
         import bs4
 
@@ -138,8 +133,7 @@ class POJJudgeClient(JudgeClient):
                     message=urlf.text
                 )
 
-    @staticmethod
-    def get_submission_status(session: POJSessionData, submission_id: str) -> dict:
+    def get_submission_status(self, session: POJSessionData, submission_id: str) -> dict:
         import bs4
         with requests.get("http://poj.org/showsource?solution_id="+submission_id, cookies=session.as_dict()) as urlf:
             soup = bs4.BeautifulSoup(urlf.text, "lxml")
@@ -198,15 +192,14 @@ class POJJudgeClient(JudgeClient):
         return result
         # print(locals())
 
+    def as_session_data(self, data: dict):
+        return POJSessionData(
+            JSESSIONID=data.get("JSESSIONID", None),
+            username=data.get("_username", None),
+            # pgv_pvi=data.get("pgv_pvi", None),
+            # pgv_si=data.get("pgv_si", None)
+        )
+
 
 def get_judge_client() -> JudgeClient:
     return POJJudgeClient
-
-
-def as_session_data(data: dict):
-    return POJSessionData(
-        JSESSIONID=data.get("JSESSIONID", None),
-        username=data.get("_username", None),
-        # pgv_pvi=data.get("pgv_pvi", None),
-        # pgv_si=data.get("pgv_si", None)
-    )
