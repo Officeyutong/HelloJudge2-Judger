@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from .common import LoginResult, SubmitResult, JudgeClient
+from datatypes.problem_fetch import ProblemExampleCase, ProblemFetchResult
 import requests
 import re
 
@@ -232,7 +233,7 @@ class LuoguJudgeClient(JudgeClient):
 
         return result
 
-    def fetch_problem(self, problem_id: str) -> dict:
+    def fetch_problem(self, problem_id: str) -> ProblemFetchResult:
         resp = requests.get(
             "https://www.luogu.com.cn/problem/"+str(problem_id), headers=self.headers)
         from bs4 import BeautifulSoup
@@ -254,8 +255,7 @@ class LuoguJudgeClient(JudgeClient):
                     text))["currentData"]["problem"]
         print("Problem data: ")
         print(problem_data)
-        return json.JSONDecoder().decode(
-            jsonpickle.dumps(ProblemFetchResult(
+        return ProblemFetchResult(
                 title="[洛谷 {}]".format(problem_data["pid"]) +
                 " "+problem_data["title"],
                 background=problem_data["background"] or "",
@@ -273,8 +273,7 @@ class LuoguJudgeClient(JudgeClient):
                         input=val[0], output=val[1]
                     ) for val in problem_data["samples"]
                 ]
-            ), unpicklable=False)
-        )
+            )
 
     def as_session_data(self, data: dict):
         return LuoguSessionData(client_id=data.get("__client_id", None), uid=data.get("_uid", None))

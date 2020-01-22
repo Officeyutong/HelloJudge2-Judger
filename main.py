@@ -12,12 +12,15 @@ import sys
 sys.path.append(basedir)
 sys.path.append(basedir+"/judgers")
 import judgers.remote_runners.luogu
-import judgers.remote_runners.vjudge
+# import judgers.remote_runners.vjudge
+import judgers.remote_runners.uoj
 import judgers.remote_runners.poj
 JUDGE_CLIENTS = {
     "luogu" : judgers.remote_runners.luogu.get_judge_client()(),
     # "vjudge":judgers.remote_runners.vjudge,
-    "poj" : judgers.remote_runners.poj.get_judge_client()()
+    "poj" : judgers.remote_runners.poj.get_judge_client()(),
+    "uoj" : judgers.remote_runners.uoj.get_judge_client()("http://uoj.ac"),
+    "darkbzoj" : judgers.remote_runners.uoj.get_judge_client()("http://darkbzoj.tk/")
 }
 
 # from test.qwq import client as docker_client

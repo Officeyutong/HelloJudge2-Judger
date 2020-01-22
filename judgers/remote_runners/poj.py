@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from .common import LoginResult, SubmitResult, JudgeClient
 import requests
 import re
-
+from datatypes.problem_fetch import ProblemFetchResult, ProblemExampleCase
 
 @dataclass
 class POJSessionData:
@@ -56,9 +56,9 @@ class POJJudgeClient(JudgeClient):
             else:
                 return LoginResult(False, urlf.text)
 
-    def fetch_problem(self, problem_id: str) -> dict:
+    def fetch_problem(self, problem_id: str) -> ProblemFetchResult:
         import jsonpickle
-        from datatypes.problem_fetch import ProblemFetchResult, ProblemExampleCase
+        
         from bs4 import BeautifulSoup
         import json
         with requests.get("http://poj.org/problem?id="+problem_id) as urlf:
@@ -69,8 +69,7 @@ class POJJudgeClient(JudgeClient):
             str((soup.find(text="Memory Limit:").parent.next_sibling)).replace("K", "").strip())
         case_time_limit: int = int(
             str((soup.find(text="Case Time Limit:").parent.next_sibling)).replace("MS", "").strip()) if soup.find(text="Case Time Limit:") else None
-        return json.JSONDecoder().decode(
-            jsonpickle.dumps(ProblemFetchResult(
+        return ProblemFetchResult(
                 title=f"[POJ{problem_id}]"+soup.select_one(".ptt").text,
                 background=(
                     f"数据点时间限制: {case_time_limit}ms" if case_time_limit else ""),
@@ -94,8 +93,7 @@ class POJJudgeClient(JudgeClient):
                             map(str, soup.find(text="Sample Output").parent.next_sibling.contents)),
                     )
                 ]
-            ), unpicklable=False)
-        )
+            )
 
     def submit(self, session: POJSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
         import base64
