@@ -19,8 +19,8 @@ JUDGE_CLIENTS = {
     "luogu" : judgers.remote_runners.luogu.get_judge_client()(),
     # "vjudge":judgers.remote_runners.vjudge,
     "poj" : judgers.remote_runners.poj.get_judge_client()(),
-    "uoj" : judgers.remote_runners.uoj.get_judge_client()("http://uoj.ac"),
-    "darkbzoj" : judgers.remote_runners.uoj.get_judge_client()("http://darkbzoj.tk/")
+    "uoj" : judgers.remote_runners.uoj.get_judge_client()("http://uoj.ac","uoj","UOJSESSID"),
+    "darkbzoj" : judgers.remote_runners.uoj.get_judge_client()("http://darkbzoj.tk/","darkbzoj","PHPSESSID")
 }
 
 # from test.qwq import client as docker_client

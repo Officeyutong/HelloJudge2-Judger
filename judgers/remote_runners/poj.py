@@ -4,6 +4,7 @@ import requests
 import re
 from datatypes.problem_fetch import ProblemFetchResult, ProblemExampleCase
 
+
 @dataclass
 class POJSessionData:
     JSESSIONID: str
@@ -58,7 +59,7 @@ class POJJudgeClient(JudgeClient):
 
     def fetch_problem(self, problem_id: str) -> ProblemFetchResult:
         import jsonpickle
-        
+
         from bs4 import BeautifulSoup
         import json
         with requests.get("http://poj.org/problem?id="+problem_id) as urlf:
@@ -70,30 +71,30 @@ class POJJudgeClient(JudgeClient):
         case_time_limit: int = int(
             str((soup.find(text="Case Time Limit:").parent.next_sibling)).replace("MS", "").strip()) if soup.find(text="Case Time Limit:") else None
         return ProblemFetchResult(
-                title=f"[POJ{problem_id}]"+soup.select_one(".ptt").text,
-                background=(
-                    f"数据点时间限制: {case_time_limit}ms" if case_time_limit else ""),
-                content="".join(
+            title=f"[POJ{problem_id}]"+soup.select_one(".ptt").text,
+            background=(
+                f"数据点时间限制: {case_time_limit}ms" if case_time_limit else ""),
+            content="".join(
                     map(str, soup.find(text="Description").parent.next_sibling.contents)),
-                hint="".join(
-                    map(str, soup.find(text="Hint").parent.next_sibling.contents)) if soup.find(text="Hint") else "",
-                inputFormat="".join(
-                    map(str, soup.find(text="Input").parent.next_sibling.contents)),
-                outputFormat="".join(
-                    map(str, soup.find(text="Output").parent.next_sibling.contents)),
-                timeLimit=time_limit,
-                memoryLimit=memory_limit,
-                remoteProblemID=problem_id,
-                remoteOJ="poj",
-                examples=[
-                    ProblemExampleCase(
-                        input="".join(
-                            map(str, soup.find(text="Sample Input").parent.next_sibling.contents)),
-                        output="".join(
-                            map(str, soup.find(text="Sample Output").parent.next_sibling.contents)),
-                    )
-                ]
-            )
+            hint="".join(
+                map(str, soup.find(text="Hint").parent.next_sibling.contents)) if soup.find(text="Hint") else "",
+            inputFormat="".join(
+                map(str, soup.find(text="Input").parent.next_sibling.contents)),
+            outputFormat="".join(
+                map(str, soup.find(text="Output").parent.next_sibling.contents)),
+            timeLimit=time_limit,
+            memoryLimit=memory_limit,
+            remoteProblemID=problem_id,
+            remoteOJ="poj",
+            examples=[
+                ProblemExampleCase(
+                    input="".join(
+                        map(str, soup.find(text="Sample Input").parent.next_sibling.contents)),
+                    output="".join(
+                        map(str, soup.find(text="Sample Output").parent.next_sibling.contents)),
+                )
+            ]
+        )
 
     def submit(self, session: POJSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
         import base64
@@ -133,6 +134,7 @@ class POJJudgeClient(JudgeClient):
 
     def get_submission_status(self, session: POJSessionData, submission_id: str) -> dict:
         import bs4
+        from datatypes.submission_fetch import SubmissionResult, SubtaskResult, TestcaseResult
         with requests.get("http://poj.org/showsource?solution_id="+submission_id, cookies=session.as_dict()) as urlf:
             soup = bs4.BeautifulSoup(urlf.text, "lxml")
         status_mapping = {
@@ -161,32 +163,54 @@ class POJJudgeClient(JudgeClient):
 
         status = status_mapping[soup.find(
             string="Result:").parent.parent.select_one("font").string]
-        result = {
-            "subtasks": {
-                "默认子任务": {
-                    "score": 0 if status != "accepted" else 100,
-                    "status": status,
-                    "testcases": [
-                        {
-                            "memory_cost": memory_cost,
-                            "time_cost": time_cost,
-                            "status": status,
-                            "input": "NotAvailable",
-                            "output": "NotAvailable",
-                            "description": "",
-                            "score": 0 if status != "accepted" else 100,
-                            "full_score": 100
-                        }
+        # result = {
+        #     "subtasks": {
+        #         "默认子任务": {
+        #             "score": 0 if status != "accepted" else 100,
+        #             "status": status,
+        #             "testcases": [
+        #                 {
+        #                     "memory_cost": memory_cost,
+        #                     "time_cost": time_cost,
+        #                     "status": status,
+        #                     "input": "NotAvailable",
+        #                     "output": "NotAvailable",
+        #                     "description": "",
+        #                     "score": 0 if status != "accepted" else 100,
+        #                     "full_score": 100
+        #                 }
+        #             ]
+        #         }
+        #     },
+        #     "message": "",
+        #     "extra_status": ""
+        # }
+        result = SubmissionResult(
+            subtasks={
+                "默认子任务": SubtaskResult(
+                    score=0 if status != "accepted" else 100,
+                    status=status,
+                    testcases=[
+                        TestcaseResult(
+                            memory_cost=memory_cost,
+                            time_cost=time_cost,
+                            status=status,
+                            input="NotAvailable",
+                            output="NotAvailable",
+                            description="",
+                            score=0 if status != "accepted" else 100,
+                            full_score=100
+                        )
                     ]
-                }
+                )
             },
-            "message": "",
-            "extra_status": ""
-        }
+            message="",
+            extra_status=""
+        )
         if status in {"compile_error", "accepted", "judging"}:
-            result["extra_status"] = status
+            result.extra_status = status
         else:
-            result["extra_status"] = "unaccepted"
+            result.extra_status = "unaccepted"
         return result
         # print(locals())
 

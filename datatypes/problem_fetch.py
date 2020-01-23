@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
+from typing import Dict
 
 
 @dataclass
@@ -23,3 +24,5 @@ class ProblemFetchResult:
     remoteProblemID: str
     remoteOJ: str
     examples: List[ProblemExampleCase]
+
+

@@ -130,6 +130,7 @@ class LuoguJudgeClient(JudgeClient):
         from typing import Dict, Tuple, List
         from urllib.parse import unquote
         from json import JSONDecoder, JSONEncoder
+        from datatypes.submission_fetch import TestcaseResult, SubmissionResult, SubtaskResult
         resp = requests.get("https://www.luogu.com.cn/record/"+submission_id,
                             headers=self.headers, cookies=session.as_dict())
         """
@@ -180,55 +181,57 @@ class LuoguJudgeClient(JudgeClient):
         except Exception as ex:
             import traceback
             traceback.print_exc()
-            return {
-                "subtasks": {}, "message": "", "extra_status": "waiting"
-            }
+            return SubmissionResult(
+                subtasks={},
+                message="",
+                extra_status="waiting"
+            )
         # print(status)
         # print(luogu_status)
-        result = {
-            "subtasks": {}, "message": "", "extra_status": ""
-        }
+        result = SubmissionResult()
         if "record" not in luogu_status:
-            return {
-                "subtasks": {}, "message": "", "extra_status": "waiting"
-            }
-        result["extra_status"] = hj2_status[luogu_status["record"]
-                                            ["status"]]
+            return SubmissionResult(
+                subtasks={},
+                message="",
+                extra_status="waiting"
+            )
+        result.extra_status = hj2_status[luogu_status["record"]
+                                         ["status"]]
         if luogu_status["record"]["status"] in {0}:
             return result
         if not luogu_status["record"]["detail"]["compileResult"]["success"]:
-            result["message"] = luogu_status["record"]["detail"]["compileResult"]["message"]
+            result.message = luogu_status["record"]["detail"]["compileResult"]["message"]
             return result
         subtask_count = sum((len(x) for x in luogu_status["testCaseGroup"]))
         for i, subtask in enumerate(luogu_status["record"]["detail"]["judgeResult"]["subtasks"]):
-            testcases = []
-            current_subtask = {
-                "score": 0,
-                "status": "waiting",
-                "testcases": testcases
-            }
+            testcases: List[TestcaseResult] = []
+            current_subtask = SubtaskResult(
+                score=0,
+                status="waiting",
+                testcases=testcases
+            )
             all_ok = True
             has_any_waiting_or_judging = False
             for idx, current in (subtask["testCases"].items() if type(subtask["testCases"]) == dict else enumerate(subtask["testCases"])):
-                testcases.append({
-                    "memory_cost": current["memory"]*1024,
-                    "time_cost": current["time"],
-                    "status": hj2_status[current["status"]],
-                    "input": "NotAvailable",
-                    "output": "NotAvailable",
-                    "description": current["description"],
-                    "score": current["score"],
-                    "full_score": 100//subtask_count
-                })
-                current_subtask["score"] += current["score"]
+                testcases.append(TestcaseResult(
+                    memory_cost=current["memory"]*1024,
+                    time_cost=current["time"],
+                    status=hj2_status[current["status"]],
+                    input="NotAvailable",
+                    output="NotAvailable",
+                    description=current["description"],
+                    score=current["score"],
+                    full_score=100//subtask_count
+                ))
+                current_subtask.score += current["score"]
                 all_ok = all_ok and (current["status"] == 12)
             if all_ok:
-                current_subtask["status"] = "accepted"
+                current_subtask.status = "accepted"
             elif has_any_waiting_or_judging:
-                current_subtask["status"] = "waiting"
+                current_subtask.status = "waiting"
             else:
-                current_subtask["status"] = "unaccepted"
-            result["subtasks"]["Subtask{}".format(
+                current_subtask.status = "unaccepted"
+            result.subtasks["Subtask{}".format(
                 subtask["id"]+1)] = current_subtask
 
         return result
@@ -256,24 +259,24 @@ class LuoguJudgeClient(JudgeClient):
         print("Problem data: ")
         print(problem_data)
         return ProblemFetchResult(
-                title="[洛谷 {}]".format(problem_data["pid"]) +
-                " "+problem_data["title"],
-                background=problem_data["background"] or "",
-                content=problem_data["description"] + (
-                    "\n\n"+problem_data["translation"] if "translation" in problem_data else ""),
-                hint=problem_data["hint"],
-                inputFormat=problem_data["inputFormat"],
-                outputFormat=problem_data["outputFormat"],
-                timeLimit=problem_data["limits"]["time"][0],
-                memoryLimit=problem_data["limits"]["memory"][0],
-                remoteProblemID=problem_data["pid"],
-                remoteOJ="luogu",
-                examples=[
-                    ProblemExampleCase(
-                        input=val[0], output=val[1]
-                    ) for val in problem_data["samples"]
-                ]
-            )
+            title="[洛谷 {}]".format(problem_data["pid"]) +
+            " "+problem_data["title"],
+            background=problem_data["background"] or "",
+            content=problem_data["description"] + (
+                "\n\n"+problem_data["translation"] if "translation" in problem_data else ""),
+            hint=problem_data["hint"],
+            inputFormat=problem_data["inputFormat"],
+            outputFormat=problem_data["outputFormat"],
+            timeLimit=problem_data["limits"]["time"][0],
+            memoryLimit=problem_data["limits"]["memory"][0],
+            remoteProblemID=problem_data["pid"],
+            remoteOJ="luogu",
+            examples=[
+                ProblemExampleCase(
+                    input=val[0], output=val[1]
+                ) for val in problem_data["samples"]
+            ]
+        )
 
     def as_session_data(self, data: dict):
         return LuoguSessionData(client_id=data.get("__client_id", None), uid=data.get("_uid", None))

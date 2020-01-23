@@ -133,7 +133,9 @@ def fetch_problem(self: Task,
     # result = json.JSONDecoder().decode(
     #     jsonpickle.dumps(fetch_result, unpicklable=not False,make_refs=False)
     # )
-    result = fetch_result.__dict__
+    result = json.JSONDecoder().decode(
+        jsonpickle.encode(fetch_result, unpicklable=False)
+    )
     http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_fetch"), json={
         "uuid": config.JUDGER_UUID, "ok": True, "result": result, "hj2_problem_id": hj2_problem_id, "client_session_id": client_session_id
     })
@@ -162,9 +164,13 @@ def track_submission(self: Task,
     # module =
     client: JudgeClient = JUDGE_CLIENTS[oj_type]
     session_object = client.as_session_data(session)
-    result: dict = client.get_submission_status(
+    track_result = client.get_submission_status(
         session_object, remote_submission_id)
-    print("Track result: ", result)
+    print("Track result: ", track_result)
+    import json
+    import jsonpickle
+    result = json.JSONDecoder().decode(
+        jsonpickle.encode(track_result, unpicklable=False))
     # message=result["message"]+"\n\n远程提交ID: {}".format(remote_submission_id)
     update_status(result["subtasks"], result["message"]+"\n\n远程提交ID: {}\n\n剩余追踪次数:{}".format(remote_submission_id, countdowns),
                   result["extra_status"])

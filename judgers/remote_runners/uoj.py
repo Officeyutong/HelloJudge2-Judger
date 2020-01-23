@@ -10,9 +10,9 @@ class UOJSessionData:
     uoj_username: str = None
     uoj_username_checksum: str = None
 
-    def as_dict(self) -> dict:
+    def as_dict(self, session_key: str = "UOJSESSID") -> dict:
         return {
-            "UOJSESSID": self.UOJSESSID,
+            session_key: self.UOJSESSID,
             "uoj_remember_token": self.uoj_remember_token,
             "uoj_remember_token_checksum": self.uoj_remember_token_checksum,
             "uoj_username": self.uoj_username,
@@ -25,12 +25,14 @@ class UOJJudgeClient(JudgeClient):
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36"
     }
 
-    def __init__(self, base_url):
+    def __init__(self, base_url, oj_id, session_key: str = "UOJSESSID"):
         """
         @param: base_url
         所使用的UOJ的根URL
         """
         self.base_url = base_url
+        self.oj_id = oj_id
+        self.session_key = session_key
 
     def make_salted_password(self, password: str, salt: str):
         import hmac
@@ -43,7 +45,7 @@ class UOJJudgeClient(JudgeClient):
         return urljoin(self.base_url, addr)
 
     def check_login_status(self, session) -> bool:
-        with requests.get(self.base_url, cookies=session.as_dict()) as urlf:
+        with requests.get(self.base_url, cookies=session.as_dict(self.session_key)) as urlf:
             text = urlf.content.decode("utf-8")
             # print(text)
             return "登出</a>" in text
@@ -51,14 +53,14 @@ class UOJJudgeClient(JudgeClient):
     def create_session(self) -> UOJSessionData:
         with requests.get(self.base_url) as urlf:
             return UOJSessionData(
-                UOJSESSID=urlf.cookies["UOJSESSID"]
+                UOJSESSID=urlf.cookies[self.session_key]
             )
 
     def login(self, session: UOJSessionData, username: str, password: str, captcha: str = None) -> LoginResult:
         client = requests.session()
-        client.cookies.update(session.as_dict())
+        client.cookies.update(session.as_dict(self.session_key))
         # print(client.cookies)
-        with client.get(self.make_url("/login"), cookies=session.as_dict(), headers=self.headers) as urlf:
+        with client.get(self.make_url("/login"), cookies=session.as_dict(self.session_key), headers=self.headers) as urlf:
             import re
             expr = re.compile(r"_token : \"(.*)\",")
             login_token = expr.search(urlf.text).groups()[0]
@@ -73,7 +75,7 @@ class UOJJudgeClient(JudgeClient):
                 "_token": login_token,
                 "login": "",
                 "password": self.make_salted_password(password, salt)
-        }, cookies=session.as_dict(), headers=self.headers) as urlf:
+        }, cookies=session.as_dict(self.session_key), headers=self.headers) as urlf:
             # print(client.cookies)
             message = urlf.text
             # print("message = ", message)
@@ -109,9 +111,10 @@ class UOJJudgeClient(JudgeClient):
         import json
         with requests.get(self.make_url("/problem/"+problem_id)) as urlf:
             soup = bs4.BeautifulSoup(urlf.content.decode("utf-8"), "lxml")
-        title = soup.select_one("h1.page-header.text-center").string
+        title = str(soup.select_one("h1.page-header.text-center").string)
         description = "".join(
             (str(x) for x in soup.select_one("article.top-buffer-md").contents))
+        # print(type(title),type(description),type(problem_id))
         return ProblemFetchResult(
             title=title,
             background="",
@@ -122,14 +125,14 @@ class UOJJudgeClient(JudgeClient):
             timeLimit=-1,
             memoryLimit=-1,
             remoteProblemID=problem_id,
-            remoteOJ="uoj",
-            examples=None
+            remoteOJ=self.oj_id,
+            examples=[]
         )
         # return description
 
     def submit(self, session: UOJSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
         client = requests.session()
-        client.cookies.update(session.as_dict())
+        client.cookies.update(session.as_dict(self.session_key))
         with client.get(self.make_url("/problem/"+problem_id)) as urlf:
             import bs4
             soup = bs4.BeautifulSoup(urlf.content.decode("utf-8"), "lxml")
@@ -165,12 +168,113 @@ class UOJJudgeClient(JudgeClient):
             # print(urlf.content.decode("utf-8"))
 
     def get_submission_status(self, session: UOJSessionData, submission_id: str) -> dict:
+        from datatypes.submission_fetch import SubmissionResult, SubtaskResult, TestcaseResult
+        from typing import Dict, List
         client = requests.session()
-        client.cookies.update(session.as_dict())
+        client.cookies.update(session.as_dict(self.session_key))
         with client.get(self.make_url("/submission/"+submission_id)) as urlf:
             import bs4
             soup = bs4.BeautifulSoup(urlf.content.decode(), "lxml")
-        score = soup.select_one(".uoj-score").string
+        subtasks: Dict[str, SubtaskResult] = {}
+        score_elem = soup.select_one(".uoj-score")
+        if not score_elem:
+            status = "judging"
+        else:
+            status = "accepted" if 100 == int(
+                score_elem.string) else "unaccepted"
+        if soup.find(text="Compile Error"):
+            return SubmissionResult(
+                subtasks={},
+                message=str(soup.select(".panel-info>.panel-body>pre")[1]),
+                extra_status="compile_error"
+            )
+        result = SubmissionResult(
+            subtasks=subtasks,
+            message="",
+            extra_status=status
+        )
+        STATUS_MAPPING = {
+            "Accepted": "accepted",
+            "Wrong Answer": "wrong_answer",
+            "Runtime Error": "runtime_error",
+            "Memory Limit Exceeded": "memory_limit_exceed",
+            "Time Limit Exceeded": "time_limit_exceed",
+            "Output Limit Exceeded": "wrong_answer",
+            "Dangerous Syscalls": "runtime_error",
+            "Judgement Failed": "unaccepted",
+            "No Comment": "unaccepted",
+            "Skipped": "skipped",
+            "Extra Test Passed": "Accepted"
+        }
+        if soup.select("h3.panel-title"):
+            # 子任务模式
+            subtask_titles = soup.select("h3.panel-title")
+            for title in subtask_titles:
+                # print(title, title.text)
+                testcases: List[TestcaseResult] = []
+                current_subtask = SubtaskResult(
+                    0,
+                    "accepted",
+                    testcases
+                )
+                subtasks[title.text.strip(": ")] = current_subtask
+                parent = title.parent
+                current_subtask.score = int(
+                    parent.next_sibling.string.replace("score: ", ""))
+                current_subtask.status = STATUS_MAPPING[parent.next_sibling.next_sibling.string]
+                body = next(title.parent.parent.parent.next_sibling.children)
+                testcase_rows = body.select(".panel")
+                for item in testcase_rows:
+                    current = item.select_one(".row")
+                    children = list(current.children)
+                    testcase_name = str(
+                        current.select_one(".panel-title").string)
+                    score = int(children[1].string.replace("score: ", ""))
+                    status = STATUS_MAPPING[children[2].string]
+                    time_cost = int(children[3].string.strip("time:ms "))
+                    memory_cost = int(
+                        children[4].string.strip("memory:kb "))*1024
+                    testcases.append(TestcaseResult(
+                        memory_cost,
+                        time_cost,
+                        status,
+                        "NotAvailable",
+                        "NotAvailable",
+                        testcase_name,
+                        score,
+                        1
+                    ))
+        else:
+            # 非子任务模式
+            testcases: List[TestcaseResult] = []
+            subtasks["默认子任务"] = SubtaskResult(
+                score=int(score_elem.string) if score_elem else 0,
+                status=status,
+                testcases=testcases
+            )
+            for testcase in soup.select(".row"):
+                name = str(testcase.select_one(".panel-title").string)
+                children = list(testcase.children)
+                score = int(children[1].string.replace("score: ", ""))
+                current_status = STATUS_MAPPING[children[2].string]
+                try:
+                    time_cost = int(children[3].string.strip("time:ms "))
+                    memory_cost = int(
+                        children[4].string.strip("memory:kb "))*1024
+                except:
+                    time_cost = memory_cost = -1
+                testcases.append(TestcaseResult(
+                    memory_cost,
+                    time_cost,
+                    current_status,
+                    "NotAvailable",
+                    "NotAvailable",
+                    name,
+                    score,
+                    1
+                ))
+
+        return result
 
     def as_session_data(self, data: dict) -> UOJSessionData:
         return UOJSessionData(
