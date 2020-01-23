@@ -11,7 +11,7 @@ class TestcaseResult:
     status: str
     input: str
     output: str
-    description: str
+    message: str
     score: int
     full_score: int
 

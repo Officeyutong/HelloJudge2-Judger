@@ -219,7 +219,7 @@ class LuoguJudgeClient(JudgeClient):
                     status=hj2_status[current["status"]],
                     input="NotAvailable",
                     output="NotAvailable",
-                    description=current["description"],
+                    message=current["description"],
                     score=current["score"],
                     full_score=100//subtask_count
                 ))

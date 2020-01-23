@@ -197,7 +197,7 @@ class POJJudgeClient(JudgeClient):
                             status=status,
                             input="NotAvailable",
                             output="NotAvailable",
-                            description="",
+                            message="",
                             score=0 if status != "accepted" else 100,
                             full_score=100
                         )
