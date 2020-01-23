@@ -54,6 +54,9 @@ RUN sed -i 's/security.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
 ##### 运行
 执行```celery -A main worker```即可。
 
+如果在Windows下运行，则为```celery -A main worker -P eventlet```.
+
+本地评测只支持在Linux下使用，远程评测可以在Windows下使用。
 #### 配置文件
 ##### REDIS_URI
 Web端所连接的```Redis```的URI。
@@ -79,3 +82,29 @@ Web端访问的URL
 语言配置会在收到评测请求时从Web端拉取。
 #### 与Web端添加语言的配套
 Web端语言配置文件中的命令行均在评测的容器中执行，故所有相关的修改请自行构建镜像。
+### Remote Judge 开发指南
+如果您需要编写自己的Remote Judge实现，那么至少要做以下几点:
+#### 客户端实现
+一个Python模块，其中包括一个继承自judgers.remote_runners.common.JudgeClient并至少实现了```check_login_status```,```create_session```,```login```,```submit```,```get_submission_status```,```fetch_problem```,```as_session_data```的对象。
+同时该模块中必须有一个顶级函数get_judge_client，用于返回评测客户端的class
+关于各个函数的意义见下文
+
+#### 在main.py中注册
+在```main.py```中的JUDGE_CLIENTS中添加你所创建的评测客户端的实例。
+
+#### 在Web端添加
+在Web端配置文件中REMOTE_JUDGE_OJS添加相应的OJ配置。
+
+其中Key为该OJ的ID，```display```为该OJ在前端的显示名,```availableLanguages```为该OJ提交可用的语言,其中Key为传递给submit函数的语言ID,```display```为该语言的显示名,```aceMode```为ACE.js所使用的高亮配置。
+#### JudgeClient中的各个函数
+见代码中注释。
+#### JudgeClient各个函数中的session参数
+session会被存储到数据库中，作为用户登录远程OJ的凭证。
+
+同时在调用JudgeClient的部分函数时也会传入session参数。
+
+开发者需提供自己的session实现。
+
+session实现必须提供as_dict方法，来将此session对象序列化为dict以便存储进数据库。
+
+同时JudgeClient必须提供as_session_data函数，以便将dict反序列化为当前客户端所使用的session对象。
