@@ -12,3 +12,8 @@ RUN git clone https://github.com/samshadwell/TrumpScript.git /root/TrumpScript
 RUN sh -c "echo \"export PATH=$PATH:/root/TrumpScript/bin\" >> /root/.bashrc"
 RUN sh -c "sed -i 's/python3/python3.7/' /root/TrumpScript/bin/TRUMP" 
 RUN sh -c 'echo "ulimit -s unlimited" >> ~/.bashrc'
+RUN sh -c 'echo "* hard stack unlimited" >> /etc/security/limits.conf'
+RUN sh -c 'echo "* soft stack unlimited" >> /etc/security/limits.conf'
+RUN sh -c 'echo "root hard stack unlimited" >> /etc/security/limits.conf'
+RUN sh -c 'echo "root soft stack unlimited" >> /etc/security/limits.conf'
+
