@@ -52,7 +52,7 @@ class DockerRunner:
             working_dir="/temp",
             cpu_period=1000,
             cpu_quota=1000,
-            ulimits=[docker.types.Ulimit(name="stack", soft="unlimited", hard="unlimited")])
+            ulimits=[docker.types.Ulimit(name="stack", soft=8277716992, hard=8277716992)])
         print("Run with command "+self.command)
 
         self.container.start()
