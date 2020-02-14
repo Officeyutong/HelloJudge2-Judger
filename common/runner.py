@@ -37,8 +37,22 @@ class DockerRunner:
         """
         运行指令
         """
-        self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, user=0, volumes={
-            self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, memswap_limit=self.memory_limit, oom_kill_disable=False, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
+        self.container = self.client.containers.create(
+            self.image_name,
+            self.command,
+            tty=True,
+            detach=False,
+            volumes={
+                self.mount_dir: {"bind": "/temp", "mode": "rw"}},
+            mem_limit=self.memory_limit,
+            memswap_limit=self.memory_limit,
+            oom_kill_disable=False,
+            auto_remove=False,
+            network_disabled=True,
+            working_dir="/temp",
+            cpu_period=1000,
+            cpu_quota=1000,
+            ulimits=[docker.types.Ulimit(name="stack", soft="unlimited", hard="unlimited")])
         print("Run with command "+self.command)
 
         self.container.start()
