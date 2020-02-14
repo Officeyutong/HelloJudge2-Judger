@@ -1,5 +1,5 @@
 import docker
-# from common.utils import 
+# from common.utils import
 from collections import namedtuple
 import os
 from datetime import *
@@ -37,7 +37,7 @@ class DockerRunner:
         """
         运行指令
         """
-        self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, volumes={
+        self.container = self.client.containers.create(self.image_name, self.command, tty=True, detach=False, user="root", volumes={
             self.mount_dir: {"bind": "/temp", "mode": "rw"}}, mem_limit=self.memory_limit, memswap_limit=self.memory_limit, oom_kill_disable=False, auto_remove=False, network_disabled=True, working_dir="/temp", cpu_period=1000, cpu_quota=1000)
         print("Run with command "+self.command)
 
