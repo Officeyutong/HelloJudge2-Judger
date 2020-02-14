@@ -11,3 +11,4 @@ RUN git clone https://github.com/samshadwell/TrumpScript.git /root/TrumpScript
 # RUN sh -c "echo \"alias python3=python3.7\" >> /root/.bashrc"
 RUN sh -c "echo \"export PATH=$PATH:/root/TrumpScript/bin\" >> /root/.bashrc"
 RUN sh -c "sed -i 's/python3/python3.7/' /root/TrumpScript/bin/TRUMP" 
+RUN sh -c 'echo "ulimit -s unlimited" >> ~/.bashrc'
