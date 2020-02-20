@@ -254,6 +254,8 @@ class LuoguJudgeClient(JudgeClient):
                 regexp = re.compile(
                     r"JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)")
                 text = regexp.search(elem.text).groups()[0]
+                print(json.JSONDecoder().decode(unquote(
+                    text)))
                 problem_data = json.JSONDecoder().decode(unquote(
                     text))["currentData"]["problem"]
         print("Problem data: ")
