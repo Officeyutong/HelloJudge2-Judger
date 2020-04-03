@@ -139,6 +139,7 @@ def fetch_problem(self: Task,
     http_client.post(urljoin(config.WEB_URL, "/api/judge/remote_judge/update_fetch"), json={
         "uuid": config.JUDGER_UUID, "ok": True, "result": result, "hj2_problem_id": hj2_problem_id, "client_session_id": client_session_id
     })
+    print("report ok.")
 
 
 @app.task(bind=True)
