@@ -128,7 +128,7 @@ def fetch_problem(self: Task,
         remote_problem_id)
     # for x in dir(fetch_result):
     #     print(x,getattr(fetch_result,x))
-    # print(fetch_result)
+    print(fetch_result)
     # print(jsonpickle.dumps(fetch_result, unpicklable=not False,make_refs=False))
     # result = json.JSONDecoder().decode(
     #     jsonpickle.dumps(fetch_result, unpicklable=not False,make_refs=False)

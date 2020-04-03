@@ -130,7 +130,7 @@ class UOJJudgeClient(JudgeClient):
             remoteOJ=self.oj_id,
             examples=[]
         )
-        print(result)
+        # print(result)
         return result
         # return description
 
