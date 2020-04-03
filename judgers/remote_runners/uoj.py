@@ -109,8 +109,10 @@ class UOJJudgeClient(JudgeClient):
         import bs4
         import jsonpickle
         import json
+        print("Downloading problem webpage....")
         with requests.get(self.make_url("/problem/"+problem_id)) as urlf:
             soup = bs4.BeautifulSoup(urlf.content.decode("utf-8"), "lxml")
+        print("Download ok.")
         title = str(soup.select_one("h1.page-header.text-center").string)
         description = "".join(
             (str(x) for x in soup.select_one("article.top-buffer-md").contents))
