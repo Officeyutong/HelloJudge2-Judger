@@ -117,7 +117,7 @@ class UOJJudgeClient(JudgeClient):
         description = "".join(
             (str(x) for x in soup.select_one("article.top-buffer-md").contents))
         # print(type(title),type(description),type(problem_id))
-        return ProblemFetchResult(
+        result = ProblemFetchResult(
             title=title,
             background="",
             content=description,
@@ -130,6 +130,8 @@ class UOJJudgeClient(JudgeClient):
             remoteOJ=self.oj_id,
             examples=[]
         )
+        print(result)
+        return result
         # return description
 
     def submit(self, session: UOJSessionData, problem_id: str, code: str, language: str, captcha: str = None) -> SubmitResult:
