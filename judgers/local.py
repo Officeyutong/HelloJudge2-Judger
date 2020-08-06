@@ -51,6 +51,7 @@ def run(self: Task, data: dict, judge_config):
         update_status({}, f"{exc}: {einfo}")
     self.on_failure = on_failure
     print(f"Got a judge task {data}")
+    print("Judge config = ", judge_config)
     problem_data: dict = http_client.post(
         urljoin(config.WEB_URL, "/api/judge/get_problem_info"), data={"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).json()["data"]
 
