@@ -68,7 +68,7 @@ def run(self: Task, data: dict, judge_config):
         os.makedirs(os.path.join(basedir, "langs"), exist_ok=True)
         with open(os.path.join("langs", spj_lang+".py"), "wb") as file:
             file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), data={
-                "lang_id": spj_lang, "uuid": config.JUDGER_UUID}))
+                "lang_id": spj_lang, "uuid": config.JUDGER_UUID}).content)
         comparator = SPJComparator(os.path.join(
             path,
             problem_data["spj_filename"]),
