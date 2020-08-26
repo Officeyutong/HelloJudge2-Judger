@@ -1,3 +1,4 @@
+# 此项目已全面迁移至github(https://github.com/Officeyutong/HelloJudge2-Judger)
 # HelloJudge2-Judger
 
 #### 介绍
