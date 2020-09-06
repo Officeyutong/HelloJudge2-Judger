@@ -248,6 +248,7 @@ class LuoguJudgeClient(JudgeClient):
         from datatypes.problem_fetch import ProblemExampleCase, ProblemFetchResult
         import jsonpickle
         import json
+        print(resp.text)
         soup = BeautifulSoup(resp.text, "lxml")
         for elem in soup.select("script"):
             if "window._feInjection" in elem.text:
