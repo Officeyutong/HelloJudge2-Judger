@@ -167,7 +167,7 @@ class LuoguJudgeClient(JudgeClient):
         }
         soup = BeautifulSoup(resp.text, "lxml")
         for item in soup.select("script"):
-            script = item.text
+            script = item.contents[0]
             break
         regexpr = re.compile(
             r"""JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)""")
@@ -248,18 +248,17 @@ class LuoguJudgeClient(JudgeClient):
         from datatypes.problem_fetch import ProblemExampleCase, ProblemFetchResult
         import jsonpickle
         import json
-        # print(resp.text)
-        with open("test.html","w") as f:
-            f.write(resp.text)
         soup = BeautifulSoup(resp.text, "lxml")
-        for i,elem in enumerate(soup.select("script")):
-            with open(f"{i}.output","w") as f:
-                f.write(elem.text)
-            if "window._feInjection" in elem.text:
-                
+        for i, elem in enumerate(soup.select("script")):
+            # print(dir(elem))
+            # with open(f"{i}.output", "w") as f:
+            #     f.write(elem.text)
+            text = elem.contents[0] if elem.contents else ""
+            if "window._feInjection" in text:
+
                 regexp = re.compile(
                     r"JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)")
-                text = regexp.search(elem.text).groups()[0]
+                text = regexp.search(text).groups()[0]
                 print(json.JSONDecoder().decode(unquote(
                     text)))
                 problem_data = json.JSONDecoder().decode(unquote(
