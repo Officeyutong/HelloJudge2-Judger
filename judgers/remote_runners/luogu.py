@@ -252,8 +252,11 @@ class LuoguJudgeClient(JudgeClient):
         with open("test.html","w") as f:
             f.write(resp.text)
         soup = BeautifulSoup(resp.text, "lxml")
-        for elem in soup.select("script"):
+        for i,elem in enumerate(soup.select("script")):
+            with open(f"{i}.output","w") as f:
+                f.write(elem.text)
             if "window._feInjection" in elem.text:
+                
                 regexp = re.compile(
                     r"JSON.parse\(decodeURIComponent\(\"(.*)\"\)\)")
                 text = regexp.search(elem.text).groups()[0]
