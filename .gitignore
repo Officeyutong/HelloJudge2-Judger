@@ -13,6 +13,7 @@ Makefile
 cmake_install.cmake
 .vscode/
 qwq.png
+test.html
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
