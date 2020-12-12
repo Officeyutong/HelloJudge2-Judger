@@ -32,7 +32,8 @@ python::tuple watch(int pid, int time_limit) {
     while (fgets(buf, 1024, fp)) {
         std::vector<std::string> result;
         std::string str = buf;
-        while (isspace(str.back())) str.pop_back();
+        while (isspace(str.back()))
+            str.pop_back();
         split(result, str, boost::is_any_of(":"), boost::token_compress_on);
         if (result.size() == 3) {
             if (strstr(result[1].c_str(), "cpu"))
@@ -51,6 +52,10 @@ python::tuple watch(int pid, int time_limit) {
     // const auto memory_file_ptr = memory.c_str();
     int64_t total_memory_cost = 0, memory_cost_count = 0;
     while (!kill(pid, 0)) {
+        time_result = get_current_usec() - begin;
+        if (time_result >= time_limit * 1000) {
+            break;
+        }
         auto fp = fopen(memory.c_str(), "r");
         if (fp) {
             int64_t curr;
@@ -61,10 +66,7 @@ python::tuple watch(int pid, int time_limit) {
             fclose(fp);
         } else
             break;
-        time_result = get_current_usec() - begin;
-        if (time_result >= time_limit * 1000) {
-            break;
-        }
+
         usleep(100);
     }
     int64_t memory_result;
@@ -72,7 +74,8 @@ python::tuple watch(int pid, int time_limit) {
         memory_result = 0;
     else
         memory_result = total_memory_cost / memory_cost_count;
-    if (time_result == -1) time_result = 0;
+    if (time_result == -1)
+        time_result = 0;
     fclose(fp);
     return python::make_tuple(time_result / 1000, memory_result);
 }
