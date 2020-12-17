@@ -50,8 +50,8 @@ class DockerRunner:
             auto_remove=False,
             network_disabled=True,
             working_dir="/temp",
-            cpu_period=1000,
-            cpu_quota=1000,
+            cpu_period=1000000,
+            cpu_quota=1000000,
             ulimits=[docker.types.Ulimit(name="stack", soft=8277716992, hard=8277716992)])
         print("Run with command "+self.command)
 
