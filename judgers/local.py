@@ -133,7 +133,7 @@ def run(self: Task, data: dict, judge_config):
         print(f"Compile result = {compile_result}")
         if compile_result.exit_code:
             update_status(
-                {}, f"{compile_result.output}\n时间开销:{compile_result.time_cost}ms\n内存开销:{compile_result.memory_cost}Bytes\nExit code:{compile_result.exit_code}", extra_status="compile_error")
+                {}, f"{compile_result.output[:2000]}\n时间开销:{compile_result.time_cost}ms\n内存开销:{compile_result.memory_cost}Bytes\nExit code:{compile_result.exit_code}", extra_status="compile_error")
             return
         update_status(data["judge_result"], "编译完成")
     else:
