@@ -54,6 +54,12 @@ def run(self: Task, data: dict, judge_config):
                         "answer_data": answer_data if problem.problem_type == "submit_answer" else None
                         }])
     """
+    import request
+
+    # disable ssl warning
+    requests.packages.urllib3.disable_warnings()
+    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+    context.verify_mode = ssl.CERT_NONE
     http_client = requests.session()
     # 更新评测状态
 

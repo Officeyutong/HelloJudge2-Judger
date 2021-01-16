@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/bin/python3",
+    "python.pythonPath": "D:\\Softwares\\Python38\\python.exe",
     "files.associations": {
         "ostream": "cpp"
     }
