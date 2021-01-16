@@ -58,7 +58,7 @@ def run(self: Task, data: dict, judge_config):
     # 更新评测状态
 
     def update_status(judge_result, message, extra_status=""):
-        http_client.post(urljoin(config.WEB_URL, "/api/judge/update"), verify=False, data={
+        http_client.post(urljoin(config.WEB_URL, "/api/judge/update"), verify=True, data={
             "uuid": config.JUDGER_UUID, "judge_result": encode_json(judge_result), "submission_id": data["id"], "message": message, "extra_status": extra_status})
     # 抛出异常时调用
 
@@ -71,7 +71,7 @@ def run(self: Task, data: dict, judge_config):
     print(f"Got a judge task {data}")
     print("Judge config = ", judge_config)
     problem_data: dict = http_client.post(
-        urljoin(config.WEB_URL, "/api/judge/get_problem_info"), verify=False, data={"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).json()["data"]
+        urljoin(config.WEB_URL, "/api/judge/get_problem_info"), verify=True, data={"uuid": config.JUDGER_UUID, "problem_id": data["problem_id"]}).json()["data"]
 
     # 题目文件目录
     path = os.path.join(config.DATA_DIR, str(data["problem_id"]))
@@ -87,7 +87,7 @@ def run(self: Task, data: dict, judge_config):
         update_status(data["judge_result"], "下载SPJ语言配置中")
         os.makedirs(os.path.join(basedir, "langs"), exist_ok=True)
         with open(os.path.join("langs", spj_lang+".py"), "wb") as file:
-            file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), verify=False, data={
+            file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), verify=True, data={
                 "lang_id": spj_lang, "uuid": config.JUDGER_UUID}).content)
         comparator = SPJComparator(os.path.join(
             path,
@@ -104,7 +104,7 @@ def run(self: Task, data: dict, judge_config):
     update_status(data["judge_result"], "下载语言配置中")
     os.makedirs(os.path.join(basedir, "langs"), exist_ok=True)
     with open(os.path.join("langs", data["language"]+".py"), "wb") as file:
-        file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), verify=False, data={
+        file.write(http_client.post(urljoin(config.WEB_URL, "/api/judge/get_lang_config"), verify=True, data={
             "lang_id": data["language"], "uuid": config.JUDGER_UUID}).content)
     # 创建临时工作目录，用于挂载到docker内进行评测
     opt_dir = tempfile.mkdtemp()
