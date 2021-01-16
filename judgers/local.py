@@ -54,6 +54,8 @@ def run(self: Task, data: dict, judge_config):
                         "answer_data": answer_data if problem.problem_type == "submit_answer" else None
                         }])
     """
+    import ssl
+    ssl._create_default_https_context = ssl._create_unverified_context
     http_client = requests.session()
     # 更新评测状态
 
