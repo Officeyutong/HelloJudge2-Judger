@@ -7,10 +7,9 @@ HelloJudge2评测机
 ### 部署指南
 #### 前置需求
 1. 一台装有任意Linux系统的机器(可以不是x86)
-2. Python3.6+
+2. Python3.8+
 3. Docker
 4. g++
-5. boost_python
 #### 过程
 ##### 首先
 使用```git```将本项目clone到本地。
@@ -45,11 +44,11 @@ RUN sed -i 's/security.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
 ##### 构建watcher
 评测端使用一个由C++编写的Python扩展来监控程序的运行时间。
 
-编译此扩展需要boost_python的支持。
-
-对于Ubuntu，可以使用```apt install libboost1.65-all-dev```进行安装。
+编译此扩展需要```python3.8-dev```(或者更高版本)的支持
 
 然后在```./watcher```目录下运行```compile.sh```即可。
+
+(如果执行时提示有找不到动态库的情况，手动修改compile.sh中的库版本为已安装的库版本即可。)
 ##### 其他
 如果不想在同一台评测机实例上同时进行本地评测和远程评测，那么请务必保证本地评测与远程评测不使用同一个消息队列。
 ##### 运行
