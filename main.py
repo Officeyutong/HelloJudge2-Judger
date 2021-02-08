@@ -9,6 +9,8 @@ import common
 app = celery.Celery("HelloJudge2", broker=config.REDIS_URI)
 basedir = os.path.dirname(__file__)
 import sys
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 sys.path.append(basedir)
 sys.path.append(basedir+"/judgers")
 import judgers.remote_runners.luogu
