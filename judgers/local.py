@@ -178,7 +178,7 @@ def run(self: Task, data: dict, judge_config):
                 try:
                     user_answer = data_zip.read(output_file_name).decode()
                 except KeyError:
-                    user_answer = []
+                    user_answer = ""
                 score, message = comparator.compare(
                     user_answer.split("\n"), answer_lines, input_lines, full_score)
 
