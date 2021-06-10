@@ -6,9 +6,9 @@ RUN apt update
 RUN apt install g++ -y
 RUN apt install python2 -y
 RUN apt install python3 -y
-RUN install openjdk-8-jdk -y
+RUN apt install openjdk-8-jdk -y
 RUN apt install haskell-platform -y
-RUN aptinstall curl build-essential m4 zlib1g-dev libssl-dev ocaml ocaml-native-compilers opam -y
+RUN apt install curl build-essential m4 zlib1g-dev libssl-dev ocaml ocaml-native-compilers opam -y
 RUN apt install rustc -y
 RUN apt install -y fpc
 # RUN apt install git
