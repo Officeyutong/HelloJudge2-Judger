@@ -54,11 +54,11 @@ class SPJComparator:
 
     def compare(self, user_out: Iterable[str], answer: Iterable[str], input_data: Iterable[str], full_score: int) -> CompareResult:
         with open(self.work_dir_path/"user_out", "w") as _user_out:
-            _user_out.writelines((x+"\n" for x in user_out))
+            _user_out.writelines((x.strip()+"\n" for x in user_out))
         with open(self.work_dir_path/"answer", "w") as _answer:
-            _answer.writelines((x+"\n" for x in answer))
+            _answer.writelines((x.strip()+"\n" for x in answer))
         with open(self.work_dir_path/"input", "w") as _input_data:
-            _input_data.writelines((x+"\n" for x in input_data))
+            _input_data.writelines((x.strip()+"\n" for x in input_data))
         self.updator("运行SPJ中..")
         runner = DockerRunner(
             self.image,
