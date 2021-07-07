@@ -60,15 +60,16 @@ class SPJComparator:
         with open(self.work_dir_path/"input", "w") as _input_data:
             _input_data.writelines((x+"\n" for x in input_data))
         self.updator("运行SPJ中..")
+        SPJ_MEMORY_LIMIT = (1024)*1024*1024
         runner = DockerRunner(
             self.image,
             self.work_dir,
             self.lang.RUN.format(
                 program=self.lang.OUTPUT_FILE.format(filename="spj"), redirect=""),
-            512*1024*1024,
+            SPJ_MEMORY_LIMIT,
             3000,
             "SPJ",
-            memory_limit_in_bytes=512*1024*1024
+            memory_limit_in_bytes=SPJ_MEMORY_LIMIT
         )
         result: RunnerResult = runner.run()
         if result.exit_code != 0:
