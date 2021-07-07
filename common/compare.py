@@ -61,20 +61,21 @@ class SPJComparator:
         with open(self.work_dir_path/"input", "w") as _input_data:
             _input_data.writelines((x.strip()+"\n" for x in input_data))
         self.updator("运行SPJ中..")
-        SPJ_MEMORY_LIMIT = (1024)*1024*1024
+        SPJ_MEMORY_LIMIT = (2048)*1024*1024
         runner = DockerRunner(
             self.image,
             self.work_dir,
             self.lang.RUN.format(
                 program=self.lang.OUTPUT_FILE.format(filename="spj"), redirect=""),
             SPJ_MEMORY_LIMIT,
-            3000,
+            5000,
             "SPJ",
             memory_limit_in_bytes=SPJ_MEMORY_LIMIT
         )
         result: RunnerResult = runner.run()
+        usage_message = f"{int(result.memory_cost/1024/1024)} MB,{result.time_cost} ms"
         if result.exit_code != 0:
-            return CompareResult(-1, f"SPJ exited with code: {result.exit_code}")
+            return CompareResult(-1, f"SPJ exited with code: {result.exit_code}, {usage_message}")
         import os
         if not os.path.exists(self.work_dir_path/"score"):
             return CompareResult(-1, "SPJ didn't provide a valid score file.")
