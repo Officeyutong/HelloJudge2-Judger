@@ -36,14 +36,14 @@ class SPJComparator:
         self.code = code
         shutil.copyfile(spj_file_name, os.path.join(
             self.work_dir, lang.SOURCE_FILE.format(filename="spj")))
-        SPJ_MEMORY_LIMIT = 1024*1024*1024
+        SPJ_MEMORY_LIMIT = 2048*1024*1024
         runner = DockerRunner(
             image,
             self.work_dir,
             lang.COMPILE.format(source=lang.SOURCE_FILE.format(
                 filename="spj"), output=lang.OUTPUT_FILE.format(filename="spj"), extra=""),
             SPJ_MEMORY_LIMIT,
-            3000,
+            5000,
             "SPJ",
             memory_limit_in_bytes=SPJ_MEMORY_LIMIT
         )
