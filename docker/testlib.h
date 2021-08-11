@@ -2462,6 +2462,7 @@ InStream::~InStream() {
 __attribute__((const))
 #endif
 int resultExitCode(TResult r) {
+    return 0;
     if (r == _ok)
         return OK_EXIT_CODE;
     if (r == _wa)
