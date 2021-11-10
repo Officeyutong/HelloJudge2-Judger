@@ -287,5 +287,5 @@ def run(self: Task, data: dict, judge_config):
                 judge_result, f"")
     finally:
         print("Cleaning up..")
-        shutil.rmtree(opt_dir)
+        shutil.rmtree(opt_dir, True)
         print("Judge process finished.")
