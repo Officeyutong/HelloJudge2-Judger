@@ -67,6 +67,7 @@ def run(self: Task, data: dict, judge_config):
     def on_failure(exc, task_id, args, kwargs, einfo):
         update_status({}, f"{exc}: {einfo}")
     self.on_failure = on_failure
+    opt_dir = None
     try:
         answer_data = judge_config["answer_data"]
         submit_answer = judge_config["submit_answer"]
@@ -287,5 +288,6 @@ def run(self: Task, data: dict, judge_config):
                 judge_result, f"")
     finally:
         print("Cleaning up..")
-        shutil.rmtree(opt_dir, True)
+        if opt_dir:
+            shutil.rmtree(opt_dir, True)
         print("Judge process finished.")
